@@ -1,5 +1,10 @@
 CircuitPython Environment Setup
 =====
+[It is highly recommended to read this document by Adafruit all the way through](https://learn.adafruit.com/debugging-the-samd21-with-gdb?view=all), along with this QUICKSTART guide.
+
+This has been verified on OSX (latest), and Metro M0 Express.
+
+Other guides that may help: [CircuitPython: Creating and Editing Code](https://learn.adafruit.com/welcome-to-circuitpython/creating-and-editing-code)
 
 ### Build firmware
 
@@ -86,3 +91,16 @@ while True:
     time.sleep(0.5) # Change these to see updates
 ```
 You can Ctrl+C things and step through execution, if things get out of wack, or you are seeing a SIGTRAP, just reset the board via gdb by typing `monitor reset` and if things are real crazy, `load` the firmware again.
+
+### Workflow 
+
+To reload a program, dont restart everything, you should be able to keep JLink and GDB going all-day. I think the best way is to get things setup, and when you make changes to the firmware with `make BOARD=metro_m0_express DEBUG=1` then just reload and reset the target:
+
+```
+(gdb) load
+(gdb) monitor reset
+...set breakboints here...
+(gdb) continue
+```
+
+You wont have to set breakpoints if you set them based on symbols / function names.
