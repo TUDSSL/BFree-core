@@ -385,6 +385,10 @@ int run_repl(void) {
     return exit_code;
 }
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+int pyrestore_process(void);
 int __attribute__((used)) main(void) {
     memory_init();
 
@@ -423,6 +427,15 @@ int __attribute__((used)) main(void) {
 
     // Start serial and HID after giving boot.py a chance to tweak behavior.
     serial_init();
+
+#if 0
+    while (1) {
+        printf("Press any key to continue\n");
+        mp_hal_delay_ms(1000);
+    }
+    printf("Continue!\n");
+#endif
+    pyrestore_process();
 
     // Boot script is finished, so now go into REPL/main mode.
     int exit_code = PYEXEC_FORCED_EXIT;
@@ -482,3 +495,129 @@ void MP_WEAK __assert_func(const char *file, int line, const char *func, const c
     __fatal_error("Assertion failed");
 }
 #endif
+
+volatile char random_data[12];
+
+static void print_random_data(void) {
+    mp_hal_stdout_tx_str("random_data: ");
+    for (unsigned int i=0; i<sizeof(random_data); i++) {
+        printf("%d, ", (int)random_data[i]);
+    }
+    mp_hal_stdout_tx_str("\r\n");
+}
+
+/*
+ * Restore process states
+ *  P = python restore script, M = metro board
+ *
+ *(1)   if input byte == 'c': DONE
+ *(2)   if input byte == 's': restore memory segment
+ *(3)   if input byte == 'r': restore register
+ *
+ *(4)   s:
+ *(5)       send 'a'                        // Ack
+ *(6)       get $addr_start:$addr_end       // in hex
+ *(7)       send $size                      // in dec $addr_end-$addr_start as ACK
+ *(8)       get data[0:$size]               // receive all the data restore bytes
+ *(9)       send $size                      // in dec as ack
+ *(10)      GOTO (1)
+ *
+ */
+
+
+static ssize_t process_segment_addr_range(char **addr_start, char **addr_end) {
+    char command[8+1+8+1]; // Enough for two 32-bit hex string numbers (NB no 0x prefix)
+    int idx = 0;
+
+    // Expect $addr_start:$addr_end as a hex string
+    while (1) {
+        int c = mp_hal_stdin_rx_chr();
+
+        if (c == '\n') {
+            command[idx] = '\0';
+            break;
+        } else {
+            // No error detection, everything else is assumed to be a hex addr
+            command[idx++] = (char)c;
+        }
+    }
+
+    // Decode the hex addr format
+    char *endptr;
+    *addr_start = (char *)strtol(command, &endptr, 16);
+    if (*endptr != ':') {
+        // Error parsing command
+        return 0;
+    }
+    char *cmd_ptr = &endptr[1]; // skip ':'
+    *addr_end = (char *)strtol(cmd_ptr, &endptr, 16);
+
+    if (*addr_start > *addr_end) {
+        // start addr > endaddr
+        return -1;
+    }
+
+    ssize_t size = *addr_end - *addr_start;
+
+    return size;
+}
+
+// Ideally there would be some kind of timeout
+static ssize_t writeback_memory_stream(char *addr_start, ssize_t size) {
+    size_t cnt;
+
+    // TODO error handling
+    if (size < 1)
+        return size;
+
+    for (cnt=0; cnt<(size_t)size; cnt++) {
+        char d = mp_hal_stdin_rx_chr();
+        addr_start[cnt] = d;
+    }
+
+    return cnt;
+}
+
+extern char _esafestack;
+// Custom checkpoint restore stuff
+int pyrestore_process(void) {
+    char *addr_start;
+    char *addr_end;
+    ssize_t size;
+
+    // TEST: fill `random_data` with all 12
+    memset((void *)random_data, 12, sizeof(random_data));
+
+    while (1) {
+        int c = mp_hal_stdin_rx_chr();
+        int done = 0;
+
+        switch (c) {
+            case 'c':
+                done = 1;
+                break;
+            case 'r':
+                break;
+            case 's':
+                mp_hal_stdout_tx_str("a"); // send ACK
+                size = process_segment_addr_range(&addr_start, &addr_end);
+                printf("%d\r\n", (int)size); // send size ACK
+                size = writeback_memory_stream(addr_start, size);
+                printf("%d\r\n", (int)size); // send size ACK
+                break;
+            default:
+                // Garbage or unknown command
+                break;
+        }
+
+        if (done)
+            break;
+    }
+
+    print_random_data();
+
+    //mp_hal_delay_ms(1000);
+
+    return 1;
+}
+

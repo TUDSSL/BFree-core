@@ -35,7 +35,65 @@
 #include "py/bc0.h"
 #include "py/bc.h"
 
-#if 0
+/* .data section */
+extern uint32_t _srelocate;
+extern uint32_t _erelocate;
+
+/* .bss section */
+extern uint32_t _sbss;
+extern uint32_t _ebss;
+
+/* stack */
+extern uint32_t _estack;
+
+static inline uint32_t * _get_sp(void)
+{
+    uint32_t *sp;
+
+    __asm__ volatile (
+            "MOV %[stack_ptr], SP \n\t"
+            :   [stack_ptr] "=r" (sp)/* output */
+            : /* input */
+            : "memory" /* clobber */
+    );
+
+    return sp;
+}
+
+#ifdef DUMP_MEMORY
+static void dump_meminfo(void)
+{
+    uint32_t *sp = _get_sp();
+
+    int data_size = &_erelocate - &_srelocate;
+    int bss_size = &_ebss - &_sbss;
+    int stack_size = &_estack - sp;
+
+    char *data_ptr = (char *)&_srelocate;
+    char *bss_ptr = (char *)&_sbss;
+    char *stack_ptr = (char *)sp;
+
+    printf(".data\t[%p-%p,%d] ", &_srelocate, &_erelocate, data_size);
+    for (int i=0; i<data_size; i++) {
+        printf(",%x", data_ptr[i]);
+    }
+    printf("\n");
+
+    printf(".bss\t[%p-%p,%d] ", &_sbss, &_ebss, bss_size);
+    for (int i=0; i<bss_size; i++) {
+        printf(",%x", bss_ptr[i]);
+    }
+    printf("\n");
+
+    printf(".stack\t[%p-%p,%d] ", sp, &_estack, stack_size);
+    for (int i=0; i<stack_size; i++) {
+        printf(",%x", stack_ptr[i]);
+    }
+    printf("\n");
+}
+#endif
+
+#if 1
 #define TRACE(ip) printf("sp=%d ", (int)(sp - &code_state->state[0] + 1)); mp_bytecode_print2(ip, 1, code_state->fun_bc->const_table);
 #else
 #define TRACE(ip)
@@ -195,6 +253,9 @@ outer_dispatch_loop:
 
             // loop to execute byte code
             for (;;) {
+#ifdef DUMP_MEMORY
+                dump_meminfo();
+#endif
 dispatch_loop:
 #if MICROPY_OPT_COMPUTED_GOTO
                 DISPATCH();

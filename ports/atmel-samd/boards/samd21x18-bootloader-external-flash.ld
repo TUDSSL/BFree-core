@@ -7,13 +7,15 @@ MEMORY
 {
     /* Leave 8KiB for the bootloader and 256b for user config. */
     FLASH (rx) : ORIGIN = 0x00000000 + 8K, LENGTH = 256K - 8K - 256
-    RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 32K /* 32 KiB RAM */
+    RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 32K - 1024 /* 32 KiB RAM */
 }
 
 /* top end of the stack */
 /* stack must be double-word (8 byte) aligned */
 _estack = ORIGIN(RAM) + LENGTH(RAM) - 8;
 _bootloader_dbl_tap = ORIGIN(RAM) + LENGTH(RAM) - 4;
+
+_esafestack = ORIGIN(RAM) + LENGTH(RAM) + 1024;
 
 /* define output sections */
 SECTIONS
