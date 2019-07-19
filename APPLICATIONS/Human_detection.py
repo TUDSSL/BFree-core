@@ -1,3 +1,8 @@
+# This program uses circuit python,the 
+# adafruit metro express m0 board,
+# and the sparkfun Grid Eye Thermal Array Sensor 
+# for human detection.
+#program must include the following libraries 
 import time
 import busio
 import board
