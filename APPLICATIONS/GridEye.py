@@ -1,3 +1,5 @@
+# This program finds the average of pixels in each row
+# of the Grid Eye sensor
 import time
 import busio
 import board
