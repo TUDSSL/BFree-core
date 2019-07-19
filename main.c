@@ -388,7 +388,9 @@ int run_repl(void) {
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+void pyrestore(void);
 int pyrestore_process(void);
+
 int __attribute__((used)) main(void) {
     memory_init();
 
@@ -435,7 +437,8 @@ int __attribute__((used)) main(void) {
     }
     printf("Continue!\n");
 #endif
-    pyrestore_process();
+    //pyrestore_process();
+    pyrestore();
 
     // Boot script is finished, so now go into REPL/main mode.
     int exit_code = PYEXEC_FORCED_EXIT;
@@ -525,6 +528,56 @@ static void print_random_data(void) {
  */
 
 
+/*
+ * Because we restore the stack we can't operate on the normal stack
+ * So we need to switch the stack to a dedicated one (_esafestack) and restore
+ * the stack afterwords
+ */
+
+extern uint32_t _esafestack;
+static volatile uint32_t *pyrestore_return_stack; // If we want to return to the stack (so we don't restore a register checkpoint)
+
+__attribute__((always_inline))
+static inline uint32_t * _get_sp(void)
+{
+    uint32_t *sp;
+
+    __asm__ volatile (
+            "MOV %[stack_ptr], SP \n\t"
+            :   [stack_ptr] "=r" (sp)/* output */
+            : /* input */
+            : "memory" /* clobber */
+    );
+
+    return sp;
+}
+
+__attribute__((always_inline))
+static inline void _set_sp(uint32_t *sp)
+{
+    __asm__ volatile (
+            "MOV SP, %[stack_ptr] \n\t"
+            : /* output */
+            :   [stack_ptr] "r" (sp)/* input */
+            : "memory" /* clobber */
+    );
+}
+
+
+// NB. This function can NOT use the stack or funny things will happen
+__attribute__((noinline))
+void pyrestore(void)
+{
+    pyrestore_return_stack = _get_sp();
+    _set_sp(&_esafestack); // Set SP to the safe stack
+
+    //// WORKING ON THE SAFE STACK
+    pyrestore_process();
+
+    // Restore the old SP
+    _set_sp((uint32_t *)pyrestore_return_stack);
+}
+
 static ssize_t process_segment_addr_range(char **addr_start, char **addr_end) {
     char command[8+1+8+1]; // Enough for two 32-bit hex string numbers (NB no 0x prefix)
     int idx = 0;
@@ -578,8 +631,7 @@ static ssize_t writeback_memory_stream(char *addr_start, ssize_t size) {
     return cnt;
 }
 
-extern char _esafestack;
-// Custom checkpoint restore stuff
+__attribute__((noinline))
 int pyrestore_process(void) {
     char *addr_start;
     char *addr_end;
