@@ -251,6 +251,7 @@ SRC_C = \
 	supervisor/shared/memory.c \
 	tick.c \
 	timer_handler.c \
+	lib/checkpoint/checkpoint.c \
 
 
 ifeq ($(CIRCUITPY_NETWORK),1)
