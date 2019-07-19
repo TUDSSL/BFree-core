@@ -168,8 +168,7 @@ static int pyrestore_process(void) {
 
 // NB. This function can NOT use the stack or funny things will happen
 __attribute__((noinline))
-void pyrestore(void)
-{
+void pyrestore(void) {
     pyrestore_return_stack = _get_sp();
     _set_sp(&_esafestack); // Set SP to the safe stack
 
@@ -180,3 +179,57 @@ void pyrestore(void)
     _set_sp((uint32_t *)pyrestore_return_stack);
 }
 
+
+
+/*
+ * Checkpoint to PC
+ *  M -> P: UNIQUE_CP_START_KEY     // signal the PC app that we wan't to send a checkpoint
+ *  // SEGMENT CP
+ *  M -> P: 's'                     // request to send a segment checkpoint (memory)
+ *  M -> P: $addr_start:$addr_end   // send the address range
+ *  M -> P: data[0:$size]           // send the checkpoint data
+ *  // REGISTER CP
+ *  M -> P: 'r'                     // request to send a register checkpoint
+ *  M -> P: $registers[0:15]        // send the register values
+ *  // END CP
+ *  M -> P: UNIQUE_CP_END_KEY       // Continue
+ */
+
+#define UNIQUE_CP_START_KEY "##CHECKPOINT_START##"
+#define UNIQUE_CP_END_KEY "##CHECKPOINT_END##"
+
+//static void checkpoint_registers(void) {
+//
+//}
+
+static void checkpoint_memory(char *start, size_t size) {
+    char *end;
+
+    if (size == 0) {
+        // error
+        return;
+    }
+
+    end = &start[size];
+
+    mp_hal_stdout_tx_str("s");
+    printf("%lx:%lx\r\n", (uint32_t)start, (uint32_t)end);
+
+    // Send the data
+    char tmp[2];
+    tmp[1] = '\0';
+    for (size_t i=0; i<size; i++) {
+        tmp[0] = start[i];
+        mp_hal_stdout_tx_str(tmp); // there is no mp_hal_*tx_char
+    }
+}
+
+void checkpoint(void) {
+    // Send the unique key to signal the PC that we are about to send a checkpoint
+    printf("%s\r\n", UNIQUE_CP_START_KEY);
+
+    checkpoint_memory((char *)random_data, sizeof(random_data));
+
+    // Send the unique key to signal the PC that we are done sending checkpoint data
+    printf("%s\r\n", UNIQUE_CP_END_KEY);
+}

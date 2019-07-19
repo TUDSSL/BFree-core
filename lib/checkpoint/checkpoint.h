@@ -2,5 +2,6 @@
 #define MICROPY_INCLUDED_LIB_CHECKPOINT_CHECKPOINT_H
 
 void pyrestore(void);
+void checkpoint(void);
 
 #endif // MICROPY_INCLUDED_LIB_CHECKPOINT_CHECKPOINT_H

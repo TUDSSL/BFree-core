@@ -427,7 +427,10 @@ int __attribute__((used)) main(void) {
     serial_init();
 
     // Restore a checkpoint (if required)
-    pyrestore();
+    //pyrestore();
+    mp_hal_delay_ms(5000);
+    checkpoint();
+    mp_hal_delay_ms(5000);
 
     // Boot script is finished, so now go into REPL/main mode.
     int exit_code = PYEXEC_FORCED_EXIT;
