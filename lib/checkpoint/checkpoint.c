@@ -18,6 +18,8 @@
 extern uint32_t _esafestack;
 static volatile uint32_t *pyrestore_return_stack; // If we want to return to the stack (so we don't restore a register checkpoint)
 
+static volatile uint32_t registers[16];
+
 void write_serial_raw(char *data, size_t length) {
     uint32_t count = 0;
     while (count < length && tud_cdc_connected()) {
@@ -129,6 +131,19 @@ static ssize_t writeback_memory_stream(char *addr_start, ssize_t size) {
     return cnt;
 }
 
+// Ideally there would be some kind of timeout
+static ssize_t writeback_register_stream(void) {
+    size_t cnt;
+    char *c_registers = (char *)&registers;
+
+    for (cnt=0; cnt<(size_t)sizeof(registers); cnt++) {
+        char d = mp_hal_stdin_rx_chr();
+        c_registers[cnt] = d;
+    }
+
+    return cnt;
+}
+
 // For debugging only
 char random_data[12] = {1,2,3,4,5,6,7,8,9,10,11,12};
 static void print_random_data(void) {
@@ -137,6 +152,13 @@ static void print_random_data(void) {
         printf("%d, ", (int)random_data[i]);
     }
     mp_hal_stdout_tx_str("\r\n");
+}
+
+static void print_register_buffer(void) {
+    printf("Register buffer:\r\n");
+    for (unsigned int i=0; i<16; i++) {
+        printf("r%d: %lx\r\n", i, registers[i]);
+    }
 }
 
 
@@ -148,6 +170,8 @@ static int pyrestore_process(void) {
 
     // TEST: fill `random_data` with all 12
     memset((void *)random_data, 12, sizeof(random_data));
+
+    print_register_buffer();
 
     // Signal a restore
     printf("%s", UNIQUE_RESTORE_START_KEY);
@@ -161,6 +185,9 @@ static int pyrestore_process(void) {
                 done = 1;
                 break;
             case 'r':
+                mp_hal_stdout_tx_str("a"); // send ACK
+                size = writeback_register_stream();
+                printf("%d\r\n", (int)sizeof(registers)); // send size ACK
                 break;
             case 's':
                 mp_hal_stdout_tx_str("a"); // send ACK
@@ -179,6 +206,7 @@ static int pyrestore_process(void) {
     }
 
     print_random_data();
+    print_register_buffer();
 
     //mp_hal_delay_ms(1000);
 
@@ -227,7 +255,6 @@ void pyrestore(void) {
  *  r14: link register
  *  r15: program counter
  */
-static volatile uint32_t registers[16];
 void checkpoint_registers(void) {
     // For some reason placing it all in the same __asm__ causes a compiler error
     __asm__ volatile (
