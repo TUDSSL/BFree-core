@@ -430,6 +430,8 @@ int __attribute__((used)) main(void) {
     //pyrestore();
     mp_hal_delay_ms(5000);
     checkpoint();
+    mp_hal_delay_ms(1000);
+    pyrestore();
     mp_hal_delay_ms(5000);
 
     // Boot script is finished, so now go into REPL/main mode.

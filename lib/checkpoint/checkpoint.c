@@ -7,6 +7,10 @@
 
 #include "lib/checkpoint/checkpoint.h"
 
+#define UNIQUE_CP_START_KEY "##CHECKPOINT_START##\n"
+#define UNIQUE_CP_END_KEY "##CHECKPOINT_END##\n"
+#define UNIQUE_RESTORE_START_KEY "##CHECKPOINT_RESTORE##\n"
+
 extern uint32_t _esafestack;
 static volatile uint32_t *pyrestore_return_stack; // If we want to return to the stack (so we don't restore a register checkpoint)
 
@@ -114,7 +118,7 @@ static ssize_t writeback_memory_stream(char *addr_start, ssize_t size) {
 }
 
 // For debugging only
-char random_data[12];
+char random_data[12] = {1,2,3,4,5,6,7,8,9,10,11,12};
 static void print_random_data(void) {
     mp_hal_stdout_tx_str("random_data: ");
     for (unsigned int i=0; i<sizeof(random_data); i++) {
@@ -132,6 +136,9 @@ static int pyrestore_process(void) {
 
     // TEST: fill `random_data` with all 12
     memset((void *)random_data, 12, sizeof(random_data));
+
+    // Signal a restore
+    printf("%s", UNIQUE_RESTORE_START_KEY);
 
     while (1) {
         int c = mp_hal_stdin_rx_chr();
@@ -195,8 +202,6 @@ void pyrestore(void) {
  *  M -> P: UNIQUE_CP_END_KEY       // Continue
  */
 
-#define UNIQUE_CP_START_KEY "##CHECKPOINT_START##"
-#define UNIQUE_CP_END_KEY "##CHECKPOINT_END##"
 
 //static void checkpoint_registers(void) {
 //
@@ -216,20 +221,25 @@ static void checkpoint_memory(char *start, size_t size) {
     printf("%lx:%lx\r\n", (uint32_t)start, (uint32_t)end);
 
     // Send the data
+#if 0
     char tmp[2];
     tmp[1] = '\0';
     for (size_t i=0; i<size; i++) {
         tmp[0] = start[i];
         mp_hal_stdout_tx_str(tmp); // there is no mp_hal_*tx_char
     }
+#endif
+    for (size_t i=0; i<size; i++) {
+        printf("%c", start[i]); // there is no mp_hal_*tx_char
+    }
 }
 
 void checkpoint(void) {
     // Send the unique key to signal the PC that we are about to send a checkpoint
-    printf("%s\r\n", UNIQUE_CP_START_KEY);
+    printf("%s", UNIQUE_CP_START_KEY);
 
     checkpoint_memory((char *)random_data, sizeof(random_data));
 
     // Send the unique key to signal the PC that we are done sending checkpoint data
-    printf("%s\r\n", UNIQUE_CP_END_KEY);
+    printf("%s", UNIQUE_CP_END_KEY);
 }
