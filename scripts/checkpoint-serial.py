@@ -49,7 +49,49 @@ class Segment:
 def send_continue(serial):
     serial.write('c'.encode())
 
+def write_registers(serial, data):
+    print('Start register write')
+
+    # Request to write the registers
+    while True:
+        print('Requesting register write')
+
+        # Clear trash from the input
+        serial.flushInput()
+
+        serial.write('r'.encode())
+        cb = serial.read(1)
+        if cb == b'a':
+            print('Ack received')
+            break
+        print('No or invalid response: ' + str(cb))
+        time.sleep(1)
+
+    # Send the registers
+    print('Sending register data')
+    serial.write(bytearray(data))
+    serial.flush()
+    print('Done sending data')
+
+    # Check for a data ack
+    print('Check for size ack')
+
+    # Wait for size response to ACK
+    size_str = serial.readline().decode()
+    size_resp = int(size_str)
+    if size_resp == 16*4:
+       print('Size ack received')
+    else:
+        print('Invalid ack size received:', str(size_resp), 'expected:', segment_size)
+        return
+
+
 def write_segment(serial, addr_start, addr_end, data):
+
+    if addr_start == addr_end == -1:
+        print('Register checkpoint')
+        write_registers(serial, data)
+        return
 
     segment_size = addr_end - addr_start
     if segment_size < 1:
@@ -130,7 +172,7 @@ def write_segment(serial, addr_start, addr_end, data):
 
 def parse_checkpoint(cp):
     print('Parsing checkpoint')
-    print('Checkpoint data:', cp.decode(), end='')
+    print('Checkpoint data:', cp, end='')
 
     segments = []
 
@@ -138,12 +180,12 @@ def parse_checkpoint(cp):
 
         if cp[0] == b's'[0]:
             print('Parsing segment checkpoint')
-            idx = cp[1:].decode().find(':')
+            idx = cp[1:].find(':'.encode())
             addr_start = cp[1:idx+1].decode()
             print('Start address: ' + addr_start)
 
             cp = cp[idx+2:]
-            idx = cp.decode().find('\r\n')
+            idx = cp.find('\r\n'.encode())
             addr_end = cp[0:idx+1].decode()
             print('End address: ' + addr_end)
 
@@ -155,16 +197,24 @@ def parse_checkpoint(cp):
 
             size = addr_end - addr_start
             print('Data size:', size)
-            print('Data:', cp[0:size])
-            data = list(cp[0:size])
+            data_ba = cp[0:size]
+            print('Data:', data_ba)
+            data = list(data_ba)
             print('Data list:', data)
 
             segments.append(Segment(addr_start, addr_end, data))
             cp = cp[size+2:] # add 2 for \r\n
-            #print('remaining data:', cp)
+            print('remaining data:', cp)
 
         elif cp[0] == b'r'[0]:
             print('Parsing register checkpoint')
+            cp = cp[1:]
+            data = list(cp[0:16*4]) # Registers are 4 bytes each, 16 registers
+            print('Data list (reg):', data)
+            segments.append(Segment(-1, -1, data))
+
+            cp = cp[16*4+2:] # add 2 for \r\n
+            print('remaining data:', cp)
 
         else:
             print('Unknown command character: ' + str(cp[0]))
@@ -250,29 +300,28 @@ checkpoint = False
 
 while True:
     line_raw = ser.readline()
-    line_str = line_raw.decode()
     clean_bytes = bytearray(line_raw)
 
     # Print serial data (act like an output only serial terminal)
-    print(line_str, end='')
+    print(line_raw, end='')
     #print(line_raw)
 
-    if UNIQUE_CP_START_KEY in line_str:
+    if UNIQUE_CP_START_KEY.encode() in line_raw:
         print('Found checkpoint start marker')
         checkpoint = True
 
-        index_start = line_str.find(UNIQUE_CP_START_KEY)
+        index_start = line_raw.find(UNIQUE_CP_START_KEY.encode())
         index_end = index_start + len(UNIQUE_CP_START_KEY)
         clean_bytes = clean_bytes[index_end:]
 
         #print('Clean bytes START:', clean_bytes.decode())
 
         #line_bytearray.extend('test'.encode())
-    if UNIQUE_CP_END_KEY in line_str:
+    if UNIQUE_CP_END_KEY.encode() in line_raw:
         print('Found checkpoint end marker')
         checkpoint = False
 
-        index_start = line_str.find(UNIQUE_CP_END_KEY)
+        index_start = line_raw.find(UNIQUE_CP_END_KEY.encode())
         clean_bytes = clean_bytes[0:index_start]
 
         #print('Clean bytes END:', clean_bytes.decode())
@@ -287,7 +336,7 @@ while True:
     if checkpoint == True:
         checkpoint_bytearray.extend(clean_bytes)
 
-    if UNIQUE_RESTORE_START_KEY in line_str:
+    if UNIQUE_RESTORE_START_KEY.encode() in line_raw:
         print('Found restore request marker')
         fn = CheckpointFile.last_filename()
         if fn == '':

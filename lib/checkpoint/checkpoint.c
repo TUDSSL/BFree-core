@@ -2,8 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "py/mpconfig.h"
+
 #include "supervisor/serial.h"
 #include "py/mphal.h"
+#include "supervisor/usb.h"
+#include "tusb.h"
 
 #include "lib/checkpoint/checkpoint.h"
 
@@ -13,6 +17,14 @@
 
 extern uint32_t _esafestack;
 static volatile uint32_t *pyrestore_return_stack; // If we want to return to the stack (so we don't restore a register checkpoint)
+
+void write_serial_raw(char *data, size_t length) {
+    uint32_t count = 0;
+    while (count < length && tud_cdc_connected()) {
+        count += tud_cdc_write(data + count, length - count);
+        usb_background();
+    }
+}
 
 /*
  * Restore process states
@@ -203,9 +215,69 @@ void pyrestore(void) {
  */
 
 
-//static void checkpoint_registers(void) {
-//
-//}
+/*
+ * ARM m0 registers:
+ *  r0, r1, r2, r3: function arguments
+ *  r4, r5, r6, r7, r8: normal registers
+ *  r9: normal register / real frame pointer
+ *  r10: stack limit
+ *  r11: argument pointer
+ *  r12: scratch register
+ *  r13: stack pointer
+ *  r14: link register
+ *  r15: program counter
+ */
+static volatile uint32_t registers[16];
+void checkpoint_registers(void) {
+    // For some reason placing it all in the same __asm__ causes a compiler error
+    __asm__ volatile (
+            "MOV %[r0], r0 \n\t"
+            "MOV %[r1], r1 \n\t"
+            "MOV %[r2], r2 \n\t"
+            "MOV %[r3], r3 \n\t"
+            "MOV %[r4], r4 \n\t"
+            "MOV %[r5], r5 \n\t"
+            "MOV %[r6], r6 \n\t"
+            "MOV %[r7], r7 \n\t"
+            "MOV %[r8], r8 \n\t"
+            :   [r0] "=r" (registers[0]),
+                [r1] "=r" (registers[1]),
+                [r2] "=r" (registers[2]),
+                [r3] "=r" (registers[3]),
+                [r4] "=r" (registers[4]),
+                [r5] "=r" (registers[5]),
+                [r6] "=r" (registers[6]),
+                [r7] "=r" (registers[7]),
+                [r8] "=r" (registers[8])
+            : /* input */
+            : "memory" /* clobber */
+    );
+    __asm__ volatile (
+            "MOV %[r9], r9 \n\t"
+            "MOV %[r10], r10 \n\t"
+            "MOV %[r11], r11 \n\t"
+            "MOV %[r12], r12 \n\t"
+            "MOV %[r13], r13 \n\t"
+            "MOV %[r14], r14 \n\t"
+            "MOV %[r15], r15 \n\t"
+            :   [r9] "=r" (registers[9]),
+                [r10] "=r" (registers[10]),
+                [r11] "=r" (registers[11]),
+                [r12] "=r" (registers[12]),
+                [r13] "=r" (registers[13]),
+                [r14] "=r" (registers[14]),
+                [r15] "=r" (registers[15])
+            : /* input */
+            : "memory" /* clobber */
+    );
+
+    // Send the registers
+    mp_hal_stdout_tx_str("r");
+
+    // Send the data
+    write_serial_raw((char *)registers, sizeof(registers));
+    mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
+}
 
 static void checkpoint_memory(char *start, size_t size) {
     char *end;
@@ -221,17 +293,8 @@ static void checkpoint_memory(char *start, size_t size) {
     printf("%lx:%lx\r\n", (uint32_t)start, (uint32_t)end);
 
     // Send the data
-#if 0
-    char tmp[2];
-    tmp[1] = '\0';
-    for (size_t i=0; i<size; i++) {
-        tmp[0] = start[i];
-        mp_hal_stdout_tx_str(tmp); // there is no mp_hal_*tx_char
-    }
-#endif
-    for (size_t i=0; i<size; i++) {
-        printf("%c", start[i]); // there is no mp_hal_*tx_char
-    }
+    write_serial_raw(start, size);
+    mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
 }
 
 void checkpoint(void) {
@@ -239,6 +302,7 @@ void checkpoint(void) {
     printf("%s", UNIQUE_CP_START_KEY);
 
     checkpoint_memory((char *)random_data, sizeof(random_data));
+    checkpoint_registers();
 
     // Send the unique key to signal the PC that we are done sending checkpoint data
     printf("%s", UNIQUE_CP_END_KEY);
