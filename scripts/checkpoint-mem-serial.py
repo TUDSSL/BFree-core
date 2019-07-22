@@ -1,9 +1,12 @@
 import serial
 import time
 import json
+import time
 
 from dataclasses import dataclass
 from typing import List
+
+PRINT_CHECKPOINT_JSON = False
 
 #SERIAL_PORT='/dev/ttyACM0'
 SERIAL_PORT='/dev/pts/13'
@@ -29,7 +32,6 @@ class Segment:
 #   M -> P: $registers[0:15]        // send the register values
 #   // END CP
 #   M -> P: UNIQUE_CP_END_KEY       // Continue
-
 
 def parse_checkpoint(cp):
     print('Parsing checkpoint')
@@ -77,6 +79,27 @@ def parse_checkpoint(cp):
     return segments
 
 
+# Filename = checkpoint_epoch_checkpoint-count
+class CheckpointFilename:
+    base = 'checkpoint_'
+    filename_base = ''
+    checkpoint_cnt = 0
+
+    def __init__(self, basename = ''):
+        if basename == '':
+            basename = self.base + str(int(time.time())) + '_'
+        self.filename_base = basename
+
+    def filename(self, cp_cnt = -1):
+        if cp_cnt == -1:
+            fn = self.filename_base + str(self.checkpoint_cnt) + '.json'
+            self.checkpoint_cnt = self.checkpoint_cnt + 1
+        else:
+            fn = self.filename_base + str(cp_cnt) + '.json'
+        return fn
+
+
+
 def write_segments_to_json(filename, segments):
     json_data = {}
     json_data['restore'] = []
@@ -89,19 +112,23 @@ def write_segments_to_json(filename, segments):
         json_segment['data'] = segment.data
         json_data['restore'].append(json_segment)
 
-    #j = json.dumps(json_data, indent=4, sort_keys=True)
+    if PRINT_CHECKPOINT_JSON == True:
+        j = json.dumps(json_data, indent=4, sort_keys=True)
+        print(j)
+
+    # Write json to file
     with open(filename, 'w') as outfile:
         json.dump(json_data, outfile)
-    #print(j)
 
 
 ser = serial.Serial(SERIAL_PORT)  # open serial port
 print('Opened serial port: ' + ser.name)
 
 
-# For debugging keep spitting out the serial data
+CheckpointFile = CheckpointFilename()
 checkpoint_bytearray = bytearray()
 checkpoint = False
+
 while True:
     line_raw = ser.readline()
     line_str = line_raw.decode()
@@ -131,7 +158,7 @@ while True:
 
         checkpoint_bytearray.extend(clean_bytes)
         segments = parse_checkpoint(checkpoint_bytearray)
-        write_segments_to_json('restore-autogen.json', segments)
+        write_segments_to_json(CheckpointFile.filename(), segments)
         checkpoint_bytearray = bytearray()
 
         #print(checkpoint_bytearray.decode())
