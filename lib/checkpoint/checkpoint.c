@@ -15,6 +15,38 @@
 #define UNIQUE_CP_END_KEY "##CHECKPOINT_END##\n"
 #define UNIQUE_RESTORE_START_KEY "##CHECKPOINT_RESTORE##\n"
 
+
+/*
+ * Atomic flag manipulation
+ */
+#define CHECKPOINT_FLAG         (1<<0)
+#define CHECKPOINT_FLAG_MASK    CHECKPOINT_FLAG
+
+typedef uint32_t atomic_flag_t;
+
+volatile atomic_flag_t checkpoint_flag = 0;
+static inline atomic_flag_t cp_get_atomic_flag(void)
+{
+    return checkpoint_flag;
+}
+
+static inline void cp_set_atomic_flag(atomic_flag_t flag)
+{
+    checkpoint_flag = flag;
+}
+
+static inline atomic_flag_t checkpoint_other(atomic_flag_t flag)
+{
+    flag ^= CHECKPOINT_FLAG;
+    return flag;
+}
+
+static inline void checkpoint_prepare(volatile atomic_flag_t *new_flag)
+{
+    *new_flag = cp_get_atomic_flag();
+    *new_flag = checkpoint_other(*new_flag);
+}
+
 extern uint32_t _esafestack;
 static volatile uint32_t *pyrestore_return_stack; // If we want to return to the stack (so we don't restore a register checkpoint)
 
@@ -75,6 +107,132 @@ static inline void _set_sp(uint32_t *sp) {
             :   [stack_ptr] "r" (sp)/* input */
             : "memory" /* clobber */
     );
+}
+
+/*
+ * ARM m0 registers:
+ *  r0, r1, r2, r3: function arguments
+ *  r4, r5, r6, r7, r8: normal registers
+ *  r9: normal register / real frame pointer
+ *  r10: stack limit
+ *  r11: argument pointer
+ *  r12: scratch register
+ *  r13: stack pointer
+ *  r14: link register
+ *  r15: program counter
+ */
+__attribute__((always_inline))
+static inline void checkpoint_registers(void) {
+    // For some reason placing it all in the same __asm__ causes a compiler error
+    __asm__ volatile (
+            "MOV %[r0], r0 \n\t"
+            "MOV %[r1], r1 \n\t"
+            "MOV %[r2], r2 \n\t"
+            "MOV %[r3], r3 \n\t"
+            "MOV %[r4], r4 \n\t"
+            "MOV %[r5], r5 \n\t"
+            "MOV %[r6], r6 \n\t"
+            "MOV %[r7], r7 \n\t"
+            "MOV %[r8], r8 \n\t"
+            :   [r0] "=r" (registers[0]),
+                [r1] "=r" (registers[1]),
+                [r2] "=r" (registers[2]),
+                [r3] "=r" (registers[3]),
+                [r4] "=r" (registers[4]),
+                [r5] "=r" (registers[5]),
+                [r6] "=r" (registers[6]),
+                [r7] "=r" (registers[7]),
+                [r8] "=r" (registers[8])
+            : /* input */
+            : "memory" /* clobber */
+    );
+    __asm__ volatile (
+            "MOV %[r9], r9 \n\t"
+            "MOV %[r10], r10 \n\t"
+            "MOV %[r11], r11 \n\t"
+            "MOV %[r12], r12 \n\t"
+            "MOV %[r13], r13 \n\t"
+            "MOV %[r14], r14 \n\t"
+            "MOV %[r15], r15 \n\t"
+            :   [r9] "=r" (registers[9]),
+                [r10] "=r" (registers[10]),
+                [r11] "=r" (registers[11]),
+                [r12] "=r" (registers[12]),
+                [r13] "=r" (registers[13]),
+                [r14] "=r" (registers[14]),
+                [r15] "=r" (registers[15])
+            : /* input */
+            : "memory" /* clobber */
+    );
+
+    // Send the registers
+    mp_hal_stdout_tx_str("r");
+
+    // Send the data
+    write_serial_raw((char *)registers, sizeof(registers));
+    mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
+}
+
+static inline void restore_registers(void) {
+    // For some reason placing it all in the same __asm__ causes a compiler error
+    __asm__ volatile (
+            "MOV r0, %[r0]\n\t"
+            "MOV r1, %[r1]\n\t"
+            "MOV r2, %[r2]\n\t"
+            "MOV r3, %[r3]\n\t"
+            "MOV r4, %[r4]\n\t"
+            "MOV r5, %[r5]\n\t"
+            "MOV r6, %[r6]\n\t"
+            "MOV r7, %[r7]\n\t"
+            "MOV r8, %[r8]\n\t"
+            :
+            :   [r0] "r" (registers[0]),
+                [r1] "r" (registers[1]),
+                [r2] "r" (registers[2]),
+                [r3] "r" (registers[3]),
+                [r4] "r" (registers[4]),
+                [r5] "r" (registers[5]),
+                [r6] "r" (registers[6]),
+                [r7] "r" (registers[7]),
+                [r8] "r" (registers[8])
+            : "memory" /* clobber */
+    );
+    __asm__ volatile (
+            "MOV r9 , %[r9]\n\t"
+            "MOV r10, %[r10]\n\t"
+            "MOV r11, %[r11]\n\t"
+            "MOV r12, %[r12]\n\t"
+            "MOV r13, %[r13]\n\t"
+            "MOV r14, %[r14]\n\t"
+            "MOV r15, %[r15]\n\t"
+            :
+            :   [r9]  "r" (registers[9]),
+                [r10] "r" (registers[10]),
+                [r11] "r" (registers[11]),
+                [r12] "r" (registers[12]),
+                [r13] "r" (registers[13]),
+                [r14] "r" (registers[14]),
+                [r15] "r" (registers[15])
+            : "memory" /* clobber */
+    );
+}
+
+static void checkpoint_memory(char *start, size_t size) {
+    char *end;
+
+    if (size == 0) {
+        // error
+        return;
+    }
+
+    end = &start[size];
+
+    mp_hal_stdout_tx_str("s");
+    printf("%lx:%lx\r\n", (uint32_t)start, (uint32_t)end);
+
+    // Send the data
+    write_serial_raw(start, size);
+    mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
 }
 
 
@@ -188,6 +346,7 @@ static int pyrestore_process(void) {
                 mp_hal_stdout_tx_str("a"); // send ACK
                 size = writeback_register_stream();
                 printf("%d\r\n", (int)sizeof(registers)); // send size ACK
+                restore_registers();
                 break;
             case 's':
                 mp_hal_stdout_tx_str("a"); // send ACK
@@ -243,88 +402,9 @@ void pyrestore(void) {
  */
 
 
-/*
- * ARM m0 registers:
- *  r0, r1, r2, r3: function arguments
- *  r4, r5, r6, r7, r8: normal registers
- *  r9: normal register / real frame pointer
- *  r10: stack limit
- *  r11: argument pointer
- *  r12: scratch register
- *  r13: stack pointer
- *  r14: link register
- *  r15: program counter
- */
-void checkpoint_registers(void) {
-    // For some reason placing it all in the same __asm__ causes a compiler error
-    __asm__ volatile (
-            "MOV %[r0], r0 \n\t"
-            "MOV %[r1], r1 \n\t"
-            "MOV %[r2], r2 \n\t"
-            "MOV %[r3], r3 \n\t"
-            "MOV %[r4], r4 \n\t"
-            "MOV %[r5], r5 \n\t"
-            "MOV %[r6], r6 \n\t"
-            "MOV %[r7], r7 \n\t"
-            "MOV %[r8], r8 \n\t"
-            :   [r0] "=r" (registers[0]),
-                [r1] "=r" (registers[1]),
-                [r2] "=r" (registers[2]),
-                [r3] "=r" (registers[3]),
-                [r4] "=r" (registers[4]),
-                [r5] "=r" (registers[5]),
-                [r6] "=r" (registers[6]),
-                [r7] "=r" (registers[7]),
-                [r8] "=r" (registers[8])
-            : /* input */
-            : "memory" /* clobber */
-    );
-    __asm__ volatile (
-            "MOV %[r9], r9 \n\t"
-            "MOV %[r10], r10 \n\t"
-            "MOV %[r11], r11 \n\t"
-            "MOV %[r12], r12 \n\t"
-            "MOV %[r13], r13 \n\t"
-            "MOV %[r14], r14 \n\t"
-            "MOV %[r15], r15 \n\t"
-            :   [r9] "=r" (registers[9]),
-                [r10] "=r" (registers[10]),
-                [r11] "=r" (registers[11]),
-                [r12] "=r" (registers[12]),
-                [r13] "=r" (registers[13]),
-                [r14] "=r" (registers[14]),
-                [r15] "=r" (registers[15])
-            : /* input */
-            : "memory" /* clobber */
-    );
 
-    // Send the registers
-    mp_hal_stdout_tx_str("r");
-
-    // Send the data
-    write_serial_raw((char *)registers, sizeof(registers));
-    mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
-}
-
-static void checkpoint_memory(char *start, size_t size) {
-    char *end;
-
-    if (size == 0) {
-        // error
-        return;
-    }
-
-    end = &start[size];
-
-    mp_hal_stdout_tx_str("s");
-    printf("%lx:%lx\r\n", (uint32_t)start, (uint32_t)end);
-
-    // Send the data
-    write_serial_raw(start, size);
-    mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
-}
-
-void checkpoint(void) {
+#if 0
+static void checkpoint_exec(void) {
     // Send the unique key to signal the PC that we are about to send a checkpoint
     printf("%s", UNIQUE_CP_START_KEY);
 
@@ -333,4 +413,39 @@ void checkpoint(void) {
 
     // Send the unique key to signal the PC that we are done sending checkpoint data
     printf("%s", UNIQUE_CP_END_KEY);
+}
+#endif
+
+int checkpoint(void)
+{
+    /* Must be volatile as this function is also the restore point
+     * and the flag is used to check if it is a restore or not
+     */
+    volatile atomic_flag_t new_flag;
+    int restore_state;
+
+    // Prepare for the next checkpoint
+    checkpoint_prepare(&new_flag);
+
+    // Send the unique key to signal the PC that we are about to send a checkpoint
+    printf("%s", UNIQUE_CP_START_KEY);
+
+    checkpoint_memory((char *)random_data, sizeof(random_data));
+    checkpoint_registers();
+
+    // NB: restore point
+    if (cp_get_atomic_flag() == new_flag) {
+        /* Restored */
+        restore_state = 1;
+        printf("%s", "Restored\r\n");
+    } else {
+        /* Normal operation */
+        restore_state = 0;
+        cp_set_atomic_flag(new_flag);
+
+        // Send the unique key to signal the PC that we are done sending checkpoint data
+        printf("%s", UNIQUE_CP_END_KEY);
+    }
+
+    return restore_state;
 }

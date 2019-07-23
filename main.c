@@ -66,6 +66,7 @@
 #include "shared-module/board/__init__.h"
 #endif
 
+#include <stdio.h>
 #include "lib/checkpoint/checkpoint.h"
 
 void do_str(const char *src, mp_parse_input_kind_t input_kind) {
@@ -429,9 +430,12 @@ int __attribute__((used)) main(void) {
     // Restore a checkpoint (if required)
     //pyrestore();
     mp_hal_delay_ms(5000);
-    checkpoint();
-    mp_hal_delay_ms(1000);
-    pyrestore();
+    if (checkpoint() == 0) {
+        // Normal operation
+        mp_hal_delay_ms(1000);
+        pyrestore();
+    }
+    printf("*******END*******\r\n");
     mp_hal_delay_ms(5000);
 
     // Boot script is finished, so now go into REPL/main mode.
