@@ -389,7 +389,7 @@ int run_repl(void) {
 }
 
 void print_register_buffer(void);
-extern volatile uint32_t pendsv_restore;
+extern volatile uint32_t checkpoint_svc_restore;
 int __attribute__((used)) main(void) {
     memory_init();
 
@@ -443,7 +443,7 @@ int __attribute__((used)) main(void) {
     asm volatile("SVC 42");
     __ISB();
     //print_register_buffer();
-    pendsv_restore = 1;
+    checkpoint_svc_restore = 1;
     asm volatile("SVC 43");
     //SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
 

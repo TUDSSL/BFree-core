@@ -63,7 +63,7 @@ static volatile uint32_t *pyrestore_return_stack; // If we want to return to the
 
 volatile uint32_t registers[17];
 volatile uint32_t *registers_top = &registers[17]; // one after the end
-volatile uint32_t pendsv_restore = 0;
+volatile uint32_t checkpoint_svc_restore = 0;
 
 void write_serial_raw(char *data, size_t length) {
     uint32_t count = 0;
