@@ -2834,50 +2834,6 @@ You are welcome to use this library for commercial purposes. For attribution, we
 <text x="-0.889" y="1.016" size="0.4064" layer="25">&gt;NAME</text>
 <text x="-1.016" y="-1.397" size="0.4064" layer="27">&gt;VALUE</text>
 </package>
-<package name="SOD-523">
-<smd name="C" x="0.7" y="0" dx="0.4" dy="0.4" layer="1"/>
-<smd name="A" x="-0.7" y="0" dx="0.4" dy="0.4" layer="1"/>
-<wire x1="-0.6" y1="-0.4" x2="0.4" y2="-0.4" width="0.127" layer="21"/>
-<wire x1="0.4" y1="-0.4" x2="0.6" y2="-0.4" width="0.127" layer="21"/>
-<wire x1="0.6" y1="0.4" x2="0.4" y2="0.4" width="0.127" layer="21"/>
-<wire x1="0.4" y1="0.4" x2="-0.6" y2="0.4" width="0.127" layer="21"/>
-<wire x1="0.6" y1="0.4" x2="0.4" y2="0.6" width="0.127" layer="21"/>
-<wire x1="0.6" y1="-0.4" x2="0.4" y2="-0.6" width="0.127" layer="21"/>
-<wire x1="0.4" y1="-0.6" x2="0.4" y2="-0.4" width="0.127" layer="21"/>
-<wire x1="0.4" y1="0.6" x2="0.4" y2="0.4" width="0.127" layer="21"/>
-<wire x1="-0.6" y1="-0.4" x2="0.3" y2="-0.4" width="0.127" layer="51"/>
-<wire x1="0.3" y1="-0.4" x2="0.6" y2="-0.4" width="0.127" layer="51"/>
-<wire x1="0.6" y1="-0.4" x2="0.6" y2="-0.1" width="0.127" layer="51"/>
-<wire x1="0.6" y1="-0.1" x2="0.6" y2="0.1" width="0.127" layer="51"/>
-<wire x1="0.6" y1="0.1" x2="0.6" y2="0.4" width="0.127" layer="51"/>
-<wire x1="0.6" y1="0.4" x2="0.3" y2="0.4" width="0.127" layer="51"/>
-<wire x1="0.3" y1="0.4" x2="-0.6" y2="0.4" width="0.127" layer="51"/>
-<wire x1="-0.6" y1="0.4" x2="-0.6" y2="0.1" width="0.127" layer="51"/>
-<wire x1="-0.6" y1="0.1" x2="-0.6" y2="-0.1" width="0.127" layer="51"/>
-<wire x1="-0.6" y1="-0.1" x2="-0.6" y2="-0.4" width="0.127" layer="51"/>
-<wire x1="0.6" y1="0.1" x2="0.8" y2="0.1" width="0.127" layer="51"/>
-<wire x1="0.8" y1="0.1" x2="0.8" y2="-0.1" width="0.127" layer="51"/>
-<wire x1="0.8" y1="-0.1" x2="0.6" y2="-0.1" width="0.127" layer="51"/>
-<wire x1="-0.6" y1="-0.1" x2="-0.8" y2="-0.1" width="0.127" layer="51"/>
-<wire x1="-0.6" y1="0.1" x2="-0.8" y2="0.1" width="0.127" layer="51"/>
-<wire x1="-0.8" y1="0.1" x2="-0.8" y2="-0.1" width="0.127" layer="51"/>
-<wire x1="0.3" y1="0.4" x2="0.3" y2="-0.4" width="0.127" layer="51"/>
-</package>
-<package name="SMA-DIODE">
-<description>&lt;B&gt;Diode&lt;/B&gt;&lt;p&gt;
-Basic SMA packaged diode. Good for reverse polarization protection. Common part #: MBRA140</description>
-<wire x1="-2.3" y1="1" x2="-2.3" y2="1.45" width="0.2032" layer="21"/>
-<wire x1="-2.3" y1="1.45" x2="2.3" y2="1.45" width="0.2032" layer="21"/>
-<wire x1="2.3" y1="1.45" x2="2.3" y2="1" width="0.2032" layer="21"/>
-<wire x1="2.3" y1="-1" x2="2.3" y2="-1.45" width="0.2032" layer="21"/>
-<wire x1="2.3" y1="-1.45" x2="-2.3" y2="-1.45" width="0.2032" layer="21"/>
-<wire x1="-2.3" y1="-1.45" x2="-2.3" y2="-1" width="0.2032" layer="21"/>
-<wire x1="1" y1="1" x2="1" y2="-1" width="0.2032" layer="21"/>
-<smd name="A" x="-2.15" y="0" dx="1.27" dy="1.47" layer="1" rot="R180"/>
-<smd name="C" x="2.15" y="0" dx="1.27" dy="1.47" layer="1"/>
-<text x="-2.286" y="1.651" size="0.4064" layer="25">&gt;NAME</text>
-<text x="0.254" y="1.651" size="0.4064" layer="27">&gt;VALUE</text>
-</package>
 </packages>
 <symbols>
 <symbol name="DIODE-SCHOTTKY">
@@ -2898,75 +2854,21 @@ Basic SMA packaged diode. Good for reverse polarization protection. Common part 
 </symbol>
 </symbols>
 <devicesets>
-<deviceset name="DIODE-SCHOTTKY" prefix="D">
-<description>Schottky diodes in SFE's production catalog&lt;p&gt;
-
-BAT20J 1A 23V 0.62Vf&lt;br&gt;
-RB751 120mA 40V 0.37Vf&lt;br&gt;
-PMEG4005EJ 0.5A 40V 0.42Vf&lt;br&gt;
-MBRA140 1A 40V 0.5Vf&lt;br&gt;
-B340A  3A 40V SMA &lt;br&gt;</description>
+<deviceset name="BAT20JFILM" prefix="D" uservalue="yes">
+<description>23V, 1A Schottky diode, SOD-323 package</description>
 <gates>
-<gate name="G$1" symbol="DIODE-SCHOTTKY" x="0" y="0"/>
+<gate name="G$1" symbol="DIODE-SCHOTTKY" x="-2.54" y="2.54"/>
 </gates>
 <devices>
-<device name="-BAT20J" package="SOD-323">
+<device name="" package="SOD-323">
 <connects>
 <connect gate="G$1" pin="A" pad="A"/>
 <connect gate="G$1" pin="C" pad="C"/>
 </connects>
 <technologies>
 <technology name="">
-<attribute name="PROD_ID" value="DIO-11623" constant="no"/>
-<attribute name="VALUE" value="BAT20J" constant="no"/>
-</technology>
-</technologies>
-</device>
-<device name="-RB751" package="SOD-523">
-<connects>
-<connect gate="G$1" pin="A" pad="A"/>
-<connect gate="G$1" pin="C" pad="C"/>
-</connects>
-<technologies>
-<technology name="">
-<attribute name="PROD_ID" value="DIO-11018" constant="no"/>
-<attribute name="VALUE" value="RB751" constant="no"/>
-</technology>
-</technologies>
-</device>
-<device name="-MBRA140" package="SMA-DIODE">
-<connects>
-<connect gate="G$1" pin="A" pad="A"/>
-<connect gate="G$1" pin="C" pad="C"/>
-</connects>
-<technologies>
-<technology name="">
-<attribute name="PROD_ID" value="DIO-08053" constant="no"/>
-<attribute name="VALUE" value="MBRA140" constant="no"/>
-</technology>
-</technologies>
-</device>
-<device name="-PMEG4005EJ" package="SOD-323">
-<connects>
-<connect gate="G$1" pin="A" pad="A"/>
-<connect gate="G$1" pin="C" pad="C"/>
-</connects>
-<technologies>
-<technology name="">
-<attribute name="PROD_ID" value="DIO-10955" constant="no"/>
-<attribute name="VALUE" value="PMEG4005EJ" constant="no"/>
-</technology>
-</technologies>
-</device>
-<device name="-B340A" package="SMA-DIODE">
-<connects>
-<connect gate="G$1" pin="A" pad="A"/>
-<connect gate="G$1" pin="C" pad="C"/>
-</connects>
-<technologies>
-<technology name="">
-<attribute name="PROD_ID" value="DIO-09886"/>
-<attribute name="VALUE" value="B340A" constant="no"/>
+<attribute name="PROD_ID" value="DIO-11623"/>
+<attribute name="VALUE" value="BAT20JFILM"/>
 </technology>
 </technologies>
 </device>
@@ -4882,11 +4784,9 @@ page 14 and AN1533, “X-Ray Effects on Intersil FGA References”.</description
 <part name="GND3" library="supply1" deviceset="GND" device=""/>
 <part name="R4" library="tiny_passives" deviceset="R-EU" device="0603" value="2.2M"/>
 <part name="R5" library="tiny_passives" deviceset="R-EU" device="0603" value="2.9M"/>
-<part name="C1" library="SparkFun-Capacitors" deviceset="CAP" device="0805"/>
-<part name="C2" library="SparkFun-Capacitors" deviceset="CAP" device="0805"/>
-<part name="C3" library="SparkFun-Capacitors" deviceset="CAP" device="0805"/>
+<part name="C2" library="SparkFun-Capacitors" deviceset="CAP" device="0805" value="10u"/>
 <part name="GND4" library="supply1" deviceset="GND" device=""/>
-<part name="D1" library="SparkFun-DiscreteSemi" deviceset="DIODE-SCHOTTKY" device="-RB751" value="RB751"/>
+<part name="D1" library="SparkFun-DiscreteSemi" deviceset="BAT20JFILM" device="" value="BAT20JFILM"/>
 <part name="R3" library="tiny_passives" deviceset="R-EU" device="0603" value="688k">
 <attribute name="DIGIKEY" value="311-499KHRCT-ND"/>
 <attribute name="MANUFACTURERPARTNUMBER" value="RC0603FR-07499KL"/>
@@ -4977,11 +4877,14 @@ page 14 and AN1533, “X-Ray Effects on Intersil FGA References”.</description
 <attribute name="MPN" value="  06035C222KAT2A"/>
 </part>
 <part name="U6" library="isl21080" deviceset="ISL21080" device="">
-<attribute name="DIGIKEY" value="ISL21080DIH312Z-TKTR-ND	"/>
-<attribute name="MPN" value="ISL21080DIH312Z-TK	"/>
+<attribute name="DIGIKEY" value="ISL21080DIH312Z-TKTR-ND"/>
 </part>
 <part name="SUPPLY10" library="SparkFun-Aesthetics" deviceset="VCC" device=""/>
 <part name="GND12" library="supply1" deviceset="GND" device=""/>
+<part name="C11" library="tiny_passives" deviceset="C-EU" device="0603" value="0.1u">
+<attribute name="MPN" value="  06035C222KAT2A"/>
+</part>
+<part name="JP4" library="SparkFun-Connectors" deviceset="M02" device="5MM"/>
 </parts>
 <sheets>
 <sheet>
@@ -5038,12 +4941,12 @@ High: 2.5V</text>
 <wire x1="106.68" y1="121.92" x2="106.68" y2="111.76" width="0.1524" layer="97" style="shortdash"/>
 <text x="58.42" y="109.22" size="2.54" layer="94" ratio="15" align="center">RTC</text>
 <wire x1="312.42" y1="109.22" x2="325.12" y2="109.22" width="0.1524" layer="97" style="shortdash"/>
-<wire x1="325.12" y1="109.22" x2="324.866" y2="85.852" width="0.1524" layer="97" style="shortdash"/>
-<wire x1="324.866" y1="85.852" x2="312.166" y2="85.852" width="0.1524" layer="97" style="shortdash"/>
-<wire x1="312.166" y1="85.852" x2="312.42" y2="109.22" width="0.1524" layer="97" style="shortdash"/>
+<wire x1="325.12" y1="109.22" x2="324.866" y2="90.932" width="0.1524" layer="97" style="shortdash"/>
+<wire x1="324.866" y1="90.932" x2="312.166" y2="90.932" width="0.1524" layer="97" style="shortdash"/>
+<wire x1="312.166" y1="90.932" x2="312.42" y2="109.22" width="0.1524" layer="97" style="shortdash"/>
 <text x="312.166" y="110.236" size="1.778" layer="97">To M0</text>
 <text x="96.52" y="229.87" size="2.54" layer="91" ratio="12">Connect Solar</text>
-<text x="264.16" y="121.92" size="2.54" layer="94" ratio="15" align="center">Debug</text>
+<text x="264.16" y="139.7" size="2.54" layer="94" ratio="15" align="center">Debug</text>
 <text x="76.2" y="160.02" size="2.54" layer="94" ratio="15" align="center">Buffering Cap</text>
 <text x="175.26" y="233.68" size="1.778" layer="91">3.6V Upper Threshold
 1.91V Lower Threshold
@@ -5053,8 +4956,12 @@ R3=688k</text>
 <text x="289.56" y="233.68" size="1.778" layer="91">Low voltage warning at 2.2V
 VREF is 1.25V
 VCAP_HALF is 56% of VCAP</text>
-<text x="317.5" y="88.9" size="1.778" layer="97">A5</text>
-<text x="317.5" y="86.36" size="1.778" layer="97">A4</text>
+<text x="320.04" y="88.9" size="1.778" layer="97">A5</text>
+<text x="320.04" y="86.36" size="1.778" layer="97">A4</text>
+<text x="320.04" y="71.12" size="1.778" layer="97">D7</text>
+<text x="320.04" y="68.58" size="1.778" layer="97">D6</text>
+<text x="147.32" y="238.76" size="1.27" layer="91">SuperCap:
+FYL0H223ZF</text>
 </plain>
 <instances>
 <instance part="AD" gate="A" x="363.22" y="83.82" rot="MR180"/>
@@ -5072,10 +4979,8 @@ VCAP_HALF is 56% of VCAP</text>
 <instance part="GND3" gate="1" x="325.12" y="185.42"/>
 <instance part="R4" gate="R1" x="304.8" y="220.98" rot="R90"/>
 <instance part="R5" gate="R1" x="304.8" y="205.74" rot="R90"/>
-<instance part="C1" gate="G$1" x="134.62" y="228.6"/>
-<instance part="C2" gate="G$1" x="142.24" y="228.6"/>
-<instance part="C3" gate="G$1" x="149.86" y="228.6"/>
-<instance part="GND4" gate="1" x="142.24" y="215.9"/>
+<instance part="C2" gate="G$1" x="134.62" y="228.6"/>
+<instance part="GND4" gate="1" x="134.62" y="213.36"/>
 <instance part="D1" gate="G$1" x="121.92" y="236.22"/>
 <instance part="R3" gate="R1" x="162.56" y="198.12" rot="MR90">
 <attribute name="DIGIKEY" x="162.56" y="198.12" size="1.778" layer="96" rot="MR90" display="off"/>
@@ -5151,12 +5056,12 @@ VCAP_HALF is 56% of VCAP</text>
 <attribute name="VALUE" x="96.52" y="218.44" size="1.778" layer="96"/>
 <attribute name="NAME" x="96.52" y="218.186" size="1.778" layer="95"/>
 </instance>
-<instance part="JP2" gate="G$1" x="261.62" y="106.68">
-<attribute name="DIGIKEY" x="261.62" y="106.68" size="1.27" layer="96" display="off"/>
+<instance part="JP2" gate="G$1" x="261.62" y="124.46">
+<attribute name="DIGIKEY" x="261.62" y="124.46" size="1.27" layer="96" display="off"/>
 </instance>
-<instance part="SUPPLY3" gate="G$1" x="251.46" y="114.3"/>
-<instance part="GND15" gate="1" x="251.46" y="96.52"/>
-<instance part="GND16" gate="1" x="271.78" y="96.52"/>
+<instance part="SUPPLY3" gate="G$1" x="251.46" y="132.08"/>
+<instance part="GND15" gate="1" x="251.46" y="114.3"/>
+<instance part="GND16" gate="1" x="271.78" y="114.3"/>
 <instance part="C5" gate="C1" x="66.04" y="144.78">
 <attribute name="MPN" x="66.04" y="144.78" size="1.27" layer="96" display="off"/>
 </instance>
@@ -5173,10 +5078,16 @@ VCAP_HALF is 56% of VCAP</text>
 </instance>
 <instance part="U6" gate="U1" x="353.06" y="233.68">
 <attribute name="DIGIKEY" x="353.06" y="233.68" size="1.27" layer="96" display="off"/>
-<attribute name="MPN" x="353.06" y="233.68" size="1.778" layer="96" display="off"/>
 </instance>
 <instance part="SUPPLY10" gate="G$1" x="335.28" y="243.84"/>
 <instance part="GND12" gate="1" x="335.28" y="228.6"/>
+<instance part="C11" gate="C1" x="58.42" y="144.78">
+<attribute name="MPN" x="58.42" y="144.78" size="1.27" layer="96" display="off"/>
+</instance>
+<instance part="JP4" gate="JP1" x="154.94" y="231.14" smashed="yes" rot="R180">
+<attribute name="VALUE" x="157.48" y="236.22" size="1.778" layer="96" rot="R180"/>
+<attribute name="NAME" x="157.48" y="236.474" size="1.778" layer="95" rot="R180"/>
+</instance>
 </instances>
 <busses>
 </busses>
@@ -5199,22 +5110,18 @@ VCAP_HALF is 56% of VCAP</text>
 <pinref part="GND6" gate="1" pin="GND"/>
 </segment>
 <segment>
-<pinref part="C1" gate="G$1" pin="2"/>
-<wire x1="134.62" y1="226.06" x2="134.62" y2="220.98" width="0.1524" layer="91"/>
-<wire x1="134.62" y1="220.98" x2="142.24" y2="220.98" width="0.1524" layer="91"/>
 <pinref part="C2" gate="G$1" pin="2"/>
-<wire x1="142.24" y1="220.98" x2="142.24" y2="226.06" width="0.1524" layer="91"/>
-<pinref part="C3" gate="G$1" pin="2"/>
-<wire x1="149.86" y1="226.06" x2="149.86" y2="220.98" width="0.1524" layer="91"/>
-<wire x1="149.86" y1="220.98" x2="142.24" y2="220.98" width="0.1524" layer="91"/>
-<junction x="142.24" y="220.98"/>
+<wire x1="134.62" y1="220.98" x2="134.62" y2="226.06" width="0.1524" layer="91"/>
+<junction x="134.62" y="220.98"/>
 <pinref part="GND4" gate="1" pin="GND"/>
-<wire x1="142.24" y1="218.44" x2="142.24" y2="220.98" width="0.1524" layer="91"/>
+<wire x1="134.62" y1="215.9" x2="134.62" y2="220.98" width="0.1524" layer="91"/>
 <pinref part="JP1" gate="JP1" pin="1"/>
 <wire x1="93.98" y1="233.68" x2="119.38" y2="233.68" width="0.1524" layer="91"/>
 <wire x1="119.38" y1="233.68" x2="119.38" y2="220.98" width="0.1524" layer="91"/>
 <wire x1="119.38" y1="220.98" x2="134.62" y2="220.98" width="0.1524" layer="91"/>
-<junction x="134.62" y="220.98"/>
+<wire x1="134.62" y1="220.98" x2="147.32" y2="220.98" width="0.1524" layer="91"/>
+<pinref part="JP4" gate="JP1" pin="2"/>
+<wire x1="147.32" y1="220.98" x2="147.32" y2="228.6" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="R3" gate="R1" pin="1"/>
@@ -5302,14 +5209,14 @@ VCAP_HALF is 56% of VCAP</text>
 </segment>
 <segment>
 <pinref part="JP2" gate="G$1" pin="9"/>
-<wire x1="254" y1="101.6" x2="251.46" y2="101.6" width="0.1524" layer="91"/>
-<wire x1="251.46" y1="101.6" x2="251.46" y2="99.06" width="0.1524" layer="91"/>
+<wire x1="254" y1="119.38" x2="251.46" y2="119.38" width="0.1524" layer="91"/>
+<wire x1="251.46" y1="119.38" x2="251.46" y2="116.84" width="0.1524" layer="91"/>
 <pinref part="GND15" gate="1" pin="GND"/>
 </segment>
 <segment>
 <pinref part="JP2" gate="G$1" pin="10"/>
-<wire x1="269.24" y1="101.6" x2="271.78" y2="101.6" width="0.1524" layer="91"/>
-<wire x1="271.78" y1="101.6" x2="271.78" y2="99.06" width="0.1524" layer="91"/>
+<wire x1="269.24" y1="119.38" x2="271.78" y2="119.38" width="0.1524" layer="91"/>
+<wire x1="271.78" y1="119.38" x2="271.78" y2="116.84" width="0.1524" layer="91"/>
 <pinref part="GND16" gate="1" pin="GND"/>
 </segment>
 <segment>
@@ -5325,6 +5232,9 @@ VCAP_HALF is 56% of VCAP</text>
 <junction x="73.66" y="137.16"/>
 <pinref part="C10" gate="C1" pin="2"/>
 <wire x1="81.28" y1="137.16" x2="81.28" y2="139.7" width="0.1524" layer="91"/>
+<wire x1="66.04" y1="137.16" x2="58.42" y2="137.16" width="0.1524" layer="91"/>
+<pinref part="C11" gate="C1" pin="2"/>
+<wire x1="58.42" y1="137.16" x2="58.42" y2="139.7" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="C6" gate="C1" pin="2"/>
@@ -5411,24 +5321,6 @@ VCAP_HALF is 56% of VCAP</text>
 <pinref part="IOH" gate="A" pin="2"/>
 </segment>
 </net>
-<net name="D7" class="0">
-<segment>
-<wire x1="314.96" y1="71.12" x2="353.06" y2="71.12" width="0.1524" layer="91"/>
-<wire x1="353.06" y1="71.12" x2="353.06" y2="63.5" width="0.1524" layer="91"/>
-<wire x1="353.06" y1="63.5" x2="360.68" y2="63.5" width="0.1524" layer="91"/>
-<label x="320.04" y="71.12" size="1.778" layer="95"/>
-<pinref part="IOL" gate="A" pin="1"/>
-</segment>
-</net>
-<net name="D6" class="0">
-<segment>
-<wire x1="360.68" y1="60.96" x2="350.52" y2="60.96" width="0.1524" layer="91"/>
-<wire x1="350.52" y1="60.96" x2="350.52" y2="68.58" width="0.1524" layer="91"/>
-<wire x1="350.52" y1="68.58" x2="314.96" y2="68.58" width="0.1524" layer="91"/>
-<label x="320.04" y="68.58" size="1.778" layer="95"/>
-<pinref part="IOL" gate="A" pin="2"/>
-</segment>
-</net>
 <net name="D5" class="0">
 <segment>
 <wire x1="314.96" y1="66.04" x2="347.98" y2="66.04" width="0.1524" layer="91"/>
@@ -5497,14 +5389,16 @@ VCAP_HALF is 56% of VCAP</text>
 <label x="342.9" y="210.82" size="1.778" layer="95" xref="yes"/>
 </segment>
 <segment>
-<pinref part="U3" gate="A" pin="P1.1_TA0.2_TA1CLK_COUT_A1_C1_VREF+_VEREF+"/>
-<wire x1="109.22" y1="129.54" x2="106.68" y2="129.54" width="0.1524" layer="91"/>
-<label x="106.68" y="129.54" size="1.27" layer="95" rot="R180" xref="yes"/>
+<pinref part="U3" gate="A" pin="P2.0_TB0.6_UCA0TXD_UCA0SIMO_TB0CLK_ACLK"/>
+<wire x1="228.6" y1="152.4" x2="231.14" y2="152.4" width="0.1524" layer="91"/>
+<label x="231.14" y="152.4" size="1.27" layer="95" xref="yes"/>
 </segment>
 <segment>
-<wire x1="360.68" y1="86.36" x2="314.96" y2="86.36" width="0.1524" layer="91"/>
-<pinref part="AD" gate="A" pin="5"/>
-<label x="345.44" y="86.36" size="1.27" layer="95"/>
+<wire x1="360.68" y1="60.96" x2="350.52" y2="60.96" width="0.1524" layer="91"/>
+<wire x1="350.52" y1="60.96" x2="350.52" y2="68.58" width="0.1524" layer="91"/>
+<wire x1="350.52" y1="68.58" x2="314.96" y2="68.58" width="0.1524" layer="91"/>
+<label x="337.82" y="68.58" size="1.778" layer="95"/>
+<pinref part="IOL" gate="A" pin="2"/>
 </segment>
 </net>
 <net name="VCAP_HALF" class="0">
@@ -5521,14 +5415,16 @@ VCAP_HALF is 56% of VCAP</text>
 <label x="299.72" y="213.36" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
-<pinref part="U3" gate="A" pin="P1.0_TA0.1_DMAE0_RTCCLK_A0_C0_VREF-_VEREF-"/>
-<wire x1="109.22" y1="132.08" x2="106.68" y2="132.08" width="0.1524" layer="91"/>
-<label x="106.68" y="132.08" size="1.27" layer="95" rot="R180" xref="yes"/>
+<pinref part="U3" gate="A" pin="P7.4__TA4.0_A16"/>
+<wire x1="109.22" y1="53.34" x2="106.68" y2="53.34" width="0.1524" layer="91"/>
+<label x="106.68" y="53.34" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
-<wire x1="314.96" y1="88.9" x2="360.68" y2="88.9" width="0.1524" layer="91"/>
-<pinref part="AD" gate="A" pin="6"/>
-<label x="345.44" y="88.9" size="1.27" layer="95"/>
+<wire x1="314.96" y1="93.98" x2="342.9" y2="93.98" width="0.1524" layer="91"/>
+<wire x1="342.9" y1="93.98" x2="342.9" y2="104.14" width="0.1524" layer="91"/>
+<wire x1="342.9" y1="104.14" x2="360.68" y2="104.14" width="0.1524" layer="91"/>
+<pinref part="IOH" gate="A" pin="10"/>
+<label x="345.44" y="104.14" size="1.9304" layer="95"/>
 </segment>
 </net>
 <net name="VCAP" class="0">
@@ -5540,16 +5436,11 @@ VCAP_HALF is 56% of VCAP</text>
 </segment>
 <segment>
 <pinref part="D1" gate="G$1" pin="C"/>
-<pinref part="C3" gate="G$1" pin="1"/>
-<wire x1="149.86" y1="236.22" x2="149.86" y2="233.68" width="0.1524" layer="91"/>
 <pinref part="C2" gate="G$1" pin="1"/>
-<wire x1="142.24" y1="236.22" x2="142.24" y2="233.68" width="0.1524" layer="91"/>
-<wire x1="142.24" y1="236.22" x2="149.86" y2="236.22" width="0.1524" layer="91"/>
-<junction x="142.24" y="236.22"/>
-<pinref part="C1" gate="G$1" pin="1"/>
-<wire x1="134.62" y1="233.68" x2="134.62" y2="236.22" width="0.1524" layer="91"/>
-<wire x1="134.62" y1="236.22" x2="142.24" y2="236.22" width="0.1524" layer="91"/>
+<wire x1="134.62" y1="236.22" x2="134.62" y2="233.68" width="0.1524" layer="91"/>
+<wire x1="134.62" y1="236.22" x2="147.32" y2="236.22" width="0.1524" layer="91"/>
 <junction x="134.62" y="236.22"/>
+<wire x1="147.32" y1="236.22" x2="149.86" y2="236.22" width="0.1524" layer="91"/>
 <wire x1="134.62" y1="236.22" x2="124.46" y2="236.22" width="0.1524" layer="91"/>
 <label x="137.16" y="236.22" size="1.778" layer="95"/>
 <pinref part="U4" gate="G$1" pin="VDD"/>
@@ -5559,8 +5450,10 @@ VCAP_HALF is 56% of VCAP</text>
 <wire x1="170.18" y1="236.22" x2="170.18" y2="226.06" width="0.1524" layer="91"/>
 <wire x1="170.18" y1="226.06" x2="175.26" y2="226.06" width="0.1524" layer="91"/>
 <wire x1="149.86" y1="236.22" x2="162.56" y2="236.22" width="0.1524" layer="91"/>
-<junction x="149.86" y="236.22"/>
 <junction x="162.56" y="236.22"/>
+<pinref part="JP4" gate="JP1" pin="1"/>
+<wire x1="147.32" y1="231.14" x2="147.32" y2="236.22" width="0.1524" layer="91"/>
+<junction x="147.32" y="236.22"/>
 </segment>
 </net>
 <net name="N$2" class="0">
@@ -5638,8 +5531,8 @@ VCAP_HALF is 56% of VCAP</text>
 </segment>
 <segment>
 <pinref part="JP2" gate="G$1" pin="1"/>
-<wire x1="254" y1="111.76" x2="251.46" y2="111.76" width="0.1524" layer="91"/>
-<wire x1="251.46" y1="111.76" x2="251.46" y2="114.3" width="0.1524" layer="91"/>
+<wire x1="254" y1="129.54" x2="251.46" y2="129.54" width="0.1524" layer="91"/>
+<wire x1="251.46" y1="129.54" x2="251.46" y2="132.08" width="0.1524" layer="91"/>
 <pinref part="SUPPLY3" gate="G$1" pin="VCC"/>
 </segment>
 <segment>
@@ -5654,6 +5547,10 @@ VCAP_HALF is 56% of VCAP</text>
 <pinref part="C10" gate="C1" pin="1"/>
 <wire x1="81.28" y1="147.32" x2="81.28" y2="149.86" width="0.1524" layer="91"/>
 <wire x1="81.28" y1="149.86" x2="73.66" y2="149.86" width="0.1524" layer="91"/>
+<wire x1="66.04" y1="149.86" x2="58.42" y2="149.86" width="0.1524" layer="91"/>
+<junction x="66.04" y="149.86"/>
+<pinref part="C11" gate="C1" pin="1"/>
+<wire x1="58.42" y1="149.86" x2="58.42" y2="147.32" width="0.1524" layer="91"/>
 </segment>
 <segment>
 <pinref part="U1" gate="U1" pin="V+"/>
@@ -5674,9 +5571,11 @@ VCAP_HALF is 56% of VCAP</text>
 <label x="264.16" y="205.74" size="1.778" layer="95" xref="yes"/>
 </segment>
 <segment>
-<pinref part="U3" gate="A" pin="P1.2_TA1.1_TA0CLK_COUT_A2_C2"/>
-<wire x1="109.22" y1="127" x2="106.68" y2="127" width="0.1524" layer="91"/>
-<label x="106.68" y="127" size="1.27" layer="95" rot="R180" xref="yes"/>
+<pinref part="U3" gate="A" pin="P3.7_TB0.6"/>
+<wire x1="109.22" y1="91.44" x2="106.68" y2="91.44" width="0.1524" layer="91"/>
+<wire x1="106.68" y1="91.44" x2="106.68" y2="93.98" width="0.1524" layer="91"/>
+<wire x1="106.68" y1="93.98" x2="104.14" y2="93.98" width="0.1524" layer="91"/>
+<label x="104.14" y="93.98" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 <net name="N$1" class="0">
@@ -5698,13 +5597,13 @@ VCAP_HALF is 56% of VCAP</text>
 </segment>
 <segment>
 <pinref part="JP2" gate="G$1" pin="3"/>
-<wire x1="254" y1="109.22" x2="251.46" y2="109.22" width="0.1524" layer="91"/>
-<label x="251.46" y="109.22" size="1.27" layer="95" rot="R180" xref="yes"/>
+<wire x1="254" y1="127" x2="251.46" y2="127" width="0.1524" layer="91"/>
+<label x="251.46" y="127" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
 <pinref part="JP2" gate="G$1" pin="4"/>
-<wire x1="269.24" y1="109.22" x2="271.78" y2="109.22" width="0.1524" layer="91"/>
-<label x="271.78" y="109.22" size="1.27" layer="95" xref="yes"/>
+<wire x1="269.24" y1="127" x2="271.78" y2="127" width="0.1524" layer="91"/>
+<label x="271.78" y="127" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="MSP430_RST" class="0">
@@ -5721,13 +5620,13 @@ VCAP_HALF is 56% of VCAP</text>
 </segment>
 <segment>
 <pinref part="JP2" gate="G$1" pin="5"/>
-<wire x1="254" y1="106.68" x2="251.46" y2="106.68" width="0.1524" layer="91"/>
-<label x="251.46" y="106.68" size="1.27" layer="95" rot="R180" xref="yes"/>
+<wire x1="254" y1="124.46" x2="251.46" y2="124.46" width="0.1524" layer="91"/>
+<label x="251.46" y="124.46" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
 <pinref part="JP2" gate="G$1" pin="6"/>
-<wire x1="269.24" y1="106.68" x2="271.78" y2="106.68" width="0.1524" layer="91"/>
-<label x="271.78" y="106.68" size="1.27" layer="95" xref="yes"/>
+<wire x1="269.24" y1="124.46" x2="271.78" y2="124.46" width="0.1524" layer="91"/>
+<label x="271.78" y="124.46" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="N$5" class="0">
@@ -5760,59 +5659,59 @@ VCAP_HALF is 56% of VCAP</text>
 </net>
 <net name="TX_DEBUG" class="0">
 <segment>
-<pinref part="U3" gate="A" pin="P2.0_TB0.6_UCA0TXD_UCA0SIMO_TB0CLK_ACLK"/>
-<wire x1="228.6" y1="152.4" x2="231.14" y2="152.4" width="0.1524" layer="91"/>
-<label x="231.14" y="152.4" size="1.27" layer="95" xref="yes"/>
-</segment>
-<segment>
 <pinref part="JP2" gate="G$1" pin="7"/>
-<wire x1="251.46" y1="104.14" x2="254" y2="104.14" width="0.1524" layer="91"/>
-<label x="251.46" y="104.14" size="1.27" layer="95" rot="R180" xref="yes"/>
+<wire x1="251.46" y1="121.92" x2="254" y2="121.92" width="0.1524" layer="91"/>
+<label x="251.46" y="121.92" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
 <pinref part="JP2" gate="G$1" pin="8"/>
-<wire x1="269.24" y1="104.14" x2="271.78" y2="104.14" width="0.1524" layer="91"/>
-<label x="271.78" y="104.14" size="1.27" layer="95" xref="yes"/>
+<wire x1="269.24" y1="121.92" x2="271.78" y2="121.92" width="0.1524" layer="91"/>
+<label x="271.78" y="121.92" size="1.27" layer="95" xref="yes"/>
+</segment>
+<segment>
+<pinref part="U3" gate="A" pin="P2.5_TB0.0_UCA1TXD_UCA1SIMO"/>
+<wire x1="228.6" y1="139.7" x2="231.14" y2="139.7" width="0.1524" layer="91"/>
+<label x="231.14" y="139.7" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="RX_DEBUG" class="0">
 <segment>
-<pinref part="U3" gate="A" pin="P2.1_TB0.0_UCA0RXD_UCA0SOMI"/>
-<wire x1="228.6" y1="149.86" x2="231.14" y2="149.86" width="0.1524" layer="91"/>
-<label x="231.14" y="149.86" size="1.27" layer="95" xref="yes"/>
+<pinref part="JP2" gate="G$1" pin="2"/>
+<wire x1="269.24" y1="129.54" x2="271.78" y2="129.54" width="0.1524" layer="91"/>
+<label x="271.78" y="129.54" size="1.27" layer="95" xref="yes"/>
 </segment>
 <segment>
-<pinref part="JP2" gate="G$1" pin="2"/>
-<wire x1="269.24" y1="111.76" x2="271.78" y2="111.76" width="0.1524" layer="91"/>
-<label x="271.78" y="111.76" size="1.27" layer="95" xref="yes"/>
+<pinref part="U3" gate="A" pin="P2.6_TB0.1_UCA1RXD_UCA1SOMI"/>
+<wire x1="228.6" y1="137.16" x2="231.14" y2="137.16" width="0.1524" layer="91"/>
+<label x="231.14" y="137.16" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="NV_READ" class="0">
-<segment>
-<pinref part="U3" gate="A" pin="P1.7_TB0.4_UCB0SOMI_UCB0SCL_TA1.0"/>
-<wire x1="109.22" y1="114.3" x2="106.68" y2="114.3" width="0.1524" layer="91"/>
-<label x="106.68" y="114.3" size="1.27" layer="95" rot="R180" xref="yes"/>
-</segment>
-<segment>
-<wire x1="314.96" y1="93.98" x2="342.9" y2="93.98" width="0.1524" layer="91"/>
-<wire x1="342.9" y1="93.98" x2="342.9" y2="104.14" width="0.1524" layer="91"/>
-<wire x1="342.9" y1="104.14" x2="360.68" y2="104.14" width="0.1524" layer="91"/>
-<pinref part="IOH" gate="A" pin="10"/>
-<label x="345.44" y="104.14" size="1.9304" layer="95"/>
-</segment>
-</net>
-<net name="NV_WRITE" class="0">
 <segment>
 <pinref part="U3" gate="A" pin="P1.6_TB0.3_UCB0SIMO_UCB0SDA_TA0.0"/>
 <wire x1="109.22" y1="116.84" x2="106.68" y2="116.84" width="0.1524" layer="91"/>
 <label x="106.68" y="116.84" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 <segment>
+<wire x1="314.96" y1="71.12" x2="353.06" y2="71.12" width="0.1524" layer="91"/>
+<wire x1="353.06" y1="71.12" x2="353.06" y2="63.5" width="0.1524" layer="91"/>
+<wire x1="353.06" y1="63.5" x2="360.68" y2="63.5" width="0.1524" layer="91"/>
+<label x="337.82" y="71.12" size="1.778" layer="95"/>
+<pinref part="IOL" gate="A" pin="1"/>
+</segment>
+</net>
+<net name="NV_WRITE" class="0">
+<segment>
 <wire x1="360.68" y1="106.68" x2="340.36" y2="106.68" width="0.1524" layer="91"/>
 <wire x1="340.36" y1="106.68" x2="340.36" y2="96.52" width="0.1524" layer="91"/>
 <wire x1="340.36" y1="96.52" x2="314.96" y2="96.52" width="0.1524" layer="91"/>
 <pinref part="IOH" gate="A" pin="9"/>
 <label x="345.44" y="106.68" size="1.9304" layer="95"/>
+</segment>
+<segment>
+<pinref part="U3" gate="A" pin="P1.7_TB0.4_UCB0SOMI_UCB0SCL_TA1.0"/>
+<wire x1="109.22" y1="114.3" x2="106.68" y2="114.3" width="0.1524" layer="91"/>
+<label x="106.68" y="114.3" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 <net name="NV_SIMO" class="0">
@@ -5886,9 +5785,9 @@ VCAP_HALF is 56% of VCAP</text>
 <wire x1="73.66" y1="101.6" x2="78.74" y2="101.6" width="0.1524" layer="91"/>
 </segment>
 <segment>
-<pinref part="U3" gate="A" pin="P7.2_UCB2CLK"/>
-<wire x1="109.22" y1="58.42" x2="104.14" y2="58.42" width="0.1524" layer="91"/>
-<label x="104.14" y="58.42" size="1.27" layer="95" rot="R180" xref="yes"/>
+<pinref part="U3" gate="A" pin="P6.2_UCA3CLK"/>
+<wire x1="228.6" y1="101.6" x2="231.14" y2="101.6" width="0.1524" layer="91"/>
+<label x="231.14" y="101.6" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="RTC_CE" class="0">
@@ -5898,9 +5797,9 @@ VCAP_HALF is 56% of VCAP</text>
 <label x="76.2" y="93.98" size="1.27" layer="95" xref="yes"/>
 </segment>
 <segment>
-<pinref part="U3" gate="A" pin="P7.3_UCB2STE_TA4.1"/>
-<wire x1="109.22" y1="55.88" x2="104.14" y2="55.88" width="0.1524" layer="91"/>
-<label x="104.14" y="55.88" size="1.27" layer="95" rot="R180" xref="yes"/>
+<pinref part="U3" gate="A" pin="P3.3_A15_C15"/>
+<wire x1="109.22" y1="101.6" x2="106.68" y2="101.6" width="0.1524" layer="91"/>
+<label x="106.68" y="101.6" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 <net name="N$4" class="0">
@@ -5912,26 +5811,26 @@ VCAP_HALF is 56% of VCAP</text>
 </net>
 <net name="RTC_SIMO" class="0">
 <segment>
-<pinref part="U3" gate="A" pin="P7.0_UCB2SIMO_UCB2SDA"/>
-<wire x1="109.22" y1="63.5" x2="104.14" y2="63.5" width="0.1524" layer="91"/>
-<label x="104.14" y="63.5" size="1.27" layer="95" rot="R180" xref="yes"/>
-</segment>
-<segment>
 <pinref part="U2" gate="U1" pin="SDI"/>
 <wire x1="73.66" y1="96.52" x2="83.82" y2="96.52" width="0.1524" layer="91"/>
 <label x="83.82" y="96.52" size="1.27" layer="95" xref="yes"/>
 </segment>
+<segment>
+<pinref part="U3" gate="A" pin="P6.0_UCA3TXD_UCA3SIMO"/>
+<wire x1="228.6" y1="106.68" x2="231.14" y2="106.68" width="0.1524" layer="91"/>
+<label x="231.14" y="106.68" size="1.27" layer="95" xref="yes"/>
+</segment>
 </net>
 <net name="RTC_SOMI" class="0">
-<segment>
-<pinref part="U3" gate="A" pin="P7.1_UCB2SOMI_UCB2SCL"/>
-<wire x1="109.22" y1="60.96" x2="104.14" y2="60.96" width="0.1524" layer="91"/>
-<label x="104.14" y="60.96" size="1.27" layer="95" rot="R180" xref="yes"/>
-</segment>
 <segment>
 <pinref part="U2" gate="U1" pin="SDO"/>
 <wire x1="73.66" y1="99.06" x2="96.52" y2="99.06" width="0.1524" layer="91"/>
 <label x="96.52" y="99.06" size="1.27" layer="95" xref="yes"/>
+</segment>
+<segment>
+<pinref part="U3" gate="A" pin="P6.1_UCA3RXD_UCA3SOMI"/>
+<wire x1="228.6" y1="104.14" x2="231.14" y2="104.14" width="0.1524" layer="91"/>
+<label x="231.14" y="104.14" size="1.27" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="N$7" class="0">
@@ -5980,24 +5879,22 @@ VCAP_HALF is 56% of VCAP</text>
 </sheet>
 </sheets>
 <errors>
-<approved hash="104,1,220.98,30.48,U3,DVSS2,GND,,,"/>
-<approved hash="104,1,101.6,144.78,U3,DVCC2,VCC,,,"/>
-<approved hash="104,1,220.98,25.4,U3,DVSS3,GND,,,"/>
-<approved hash="104,1,101.6,139.7,U3,DVCC3,VCC,,,"/>
-<approved hash="104,1,220.98,35.56,U3,DVSS1,GND,,,"/>
-<approved hash="104,1,101.6,149.86,U3,DVCC1,VCC,,,"/>
-<approved hash="104,1,220.98,40.64,U3,AVSS3,GND,,,"/>
-<approved hash="104,1,220.98,45.72,U3,AVSS2,GND,,,"/>
-<approved hash="104,1,220.98,50.8,U3,AVSS1,GND,,,"/>
-<approved hash="104,1,101.6,154.94,U3,AVCC1,VCC,,,"/>
+<approved hash="104,1,228.6,27.94,U3,DVSS2,GND,,,"/>
+<approved hash="104,1,109.22,142.24,U3,DVCC2,VCC,,,"/>
+<approved hash="104,1,228.6,22.86,U3,DVSS3,GND,,,"/>
+<approved hash="104,1,109.22,137.16,U3,DVCC3,VCC,,,"/>
+<approved hash="104,1,228.6,33.02,U3,DVSS1,GND,,,"/>
+<approved hash="104,1,109.22,147.32,U3,DVCC1,VCC,,,"/>
+<approved hash="104,1,228.6,38.1,U3,AVSS3,GND,,,"/>
+<approved hash="104,1,228.6,43.18,U3,AVSS2,GND,,,"/>
+<approved hash="104,1,228.6,48.26,U3,AVSS1,GND,,,"/>
+<approved hash="104,1,109.22,152.4,U3,AVCC1,VCC,,,"/>
 <approved hash="104,1,325.12,218.44,U1,V+,VCC,,,"/>
 <approved hash="106,1,363.22,152.4,!RESET,,,,,"/>
 <approved hash="106,1,360.68,76.2,A0,,,,,"/>
 <approved hash="106,1,360.68,78.74,A1,,,,,"/>
 <approved hash="106,1,360.68,81.28,A2,,,,,"/>
 <approved hash="106,1,360.68,83.82,A3,,,,,"/>
-<approved hash="106,1,360.68,86.36,A4,,,,,"/>
-<approved hash="106,1,360.68,88.9,A5,,,,,"/>
 <approved hash="106,1,360.68,121.92,AREF,,,,,"/>
 <approved hash="106,1,360.68,45.72,D0,,,,,"/>
 <approved hash="106,1,360.68,48.26,D1,,,,,"/>
@@ -6005,14 +5902,13 @@ VCAP_HALF is 56% of VCAP</text>
 <approved hash="106,1,360.68,53.34,D3,,,,,"/>
 <approved hash="106,1,360.68,55.88,D4,,,,,"/>
 <approved hash="106,1,360.68,58.42,D5,,,,,"/>
-<approved hash="106,1,360.68,60.96,D6,,,,,"/>
-<approved hash="106,1,360.68,63.5,D7,,,,,"/>
 <approved hash="106,1,360.68,127,SCL,,,,,"/>
 <approved hash="106,1,360.68,124.46,SDA,,,,,"/>
 <approved hash="106,1,363.22,139.7,VIN,,,,,"/>
 <approved hash="113,1,90.7627,236.51,JP1,,,,,"/>
 <approved hash="113,1,103.463,223.198,JP3,,,,,"/>
-<approved hash="113,1,254,110.78,JP2,,,,,"/>
+<approved hash="113,1,261.62,126.02,JP2,,,,,"/>
+<approved hash="113,1,150.537,231.462,JP4,,,,,"/>
 </errors>
 </schematic>
 </drawing>
