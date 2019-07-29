@@ -292,7 +292,7 @@ SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
 SRC_SHARED_MODULE_EXPANDED = $(addprefix shared-bindings/, $(SRC_SHARED_MODULE)) \
                              $(addprefix shared-module/, $(SRC_SHARED_MODULE))
 
-SRC_S = supervisor/$(CHIP_FAMILY)_cpu.s
+SRC_S = supervisor/$(CHIP_FAMILY)_cpu.s lib/checkpoint/checkpoint_svc.s
 
 OBJ = $(PY_O) $(SUPERVISOR_O) $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_ASF:.c=.o))

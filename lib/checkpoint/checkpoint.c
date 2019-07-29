@@ -15,6 +15,17 @@
 #define UNIQUE_CP_END_KEY "##CHECKPOINT_END##\n"
 #define UNIQUE_RESTORE_START_KEY "##CHECKPOINT_RESTORE##\n"
 
+/* .data section */
+extern uint32_t _srelocate;
+extern uint32_t _erelocate;
+
+/* .bss section */
+extern uint32_t _sbss;
+extern uint32_t _ebss;
+
+/* stack */
+extern uint32_t _estack;
+
 
 /*
  * Atomic flag manipulation
@@ -50,7 +61,9 @@ static inline void checkpoint_prepare(volatile atomic_flag_t *new_flag)
 extern uint32_t _esafestack;
 static volatile uint32_t *pyrestore_return_stack; // If we want to return to the stack (so we don't restore a register checkpoint)
 
-static volatile uint32_t registers[16];
+volatile uint32_t registers[17];
+volatile uint32_t *registers_top = &registers[17]; // one after the end
+volatile uint32_t pendsv_restore = 0;
 
 void write_serial_raw(char *data, size_t length) {
     uint32_t count = 0;
@@ -173,7 +186,9 @@ static inline void checkpoint_registers(void) {
     mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
 }
 
-static inline void restore_registers(void) {
+// TODO: Something here crashes everything, maybe OS related? Should single step in GDB
+__attribute__((noinline))
+static void restore_registers(void) {
     // For some reason placing it all in the same __asm__ causes a compiler error
     __asm__ volatile (
             "MOV r0, %[r0]\n\t"
@@ -217,7 +232,7 @@ static inline void restore_registers(void) {
     );
 }
 
-static void checkpoint_memory(char *start, size_t size) {
+static void checkpoint_memory_region(char *start, size_t size) {
     char *end;
 
     if (size == 0) {
@@ -233,6 +248,26 @@ static void checkpoint_memory(char *start, size_t size) {
     // Send the data
     write_serial_raw(start, size);
     mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
+}
+
+void checkpoint_memory(void) {
+    uint32_t *sp = _get_sp();
+
+    //int data_size = &_erelocate - &_srelocate;
+    //int bss_size = &_ebss - &_sbss;
+    int stack_size = &_estack - sp;
+
+    //char *data_ptr = (char *)&_srelocate;
+    //char *bss_ptr = (char *)&_sbss;
+    char *stack_ptr = (char *)sp;
+
+    //printf(".stack\t[%p-%p,%d]\r\n", sp, &_estack, stack_size);
+    //printf(".data\t[%p-%p,%d]\r\n", &_srelocate, &_erelocate, data_size);
+    //printf(".bss\t[%p-%p,%d]\r\n", &_sbss, &_ebss, bss_size);
+
+    checkpoint_memory_region(stack_ptr, stack_size);
+    //checkpoint_memory_region(data_ptr, data_size);
+    //checkpoint_memory_region(bss_ptr, bss_size);
 }
 
 
@@ -304,7 +339,7 @@ static ssize_t writeback_register_stream(void) {
 
 // For debugging only
 char random_data[12] = {1,2,3,4,5,6,7,8,9,10,11,12};
-static void print_random_data(void) {
+void print_random_data(void) {
     mp_hal_stdout_tx_str("random_data: ");
     for (unsigned int i=0; i<sizeof(random_data); i++) {
         printf("%d, ", (int)random_data[i]);
@@ -312,7 +347,7 @@ static void print_random_data(void) {
     mp_hal_stdout_tx_str("\r\n");
 }
 
-static void print_register_buffer(void) {
+void print_register_buffer(void) {
     printf("Register buffer:\r\n");
     for (unsigned int i=0; i<16; i++) {
         printf("r%d: %lx\r\n", i, registers[i]);
@@ -329,7 +364,7 @@ static int pyrestore_process(void) {
     // TEST: fill `random_data` with all 12
     memset((void *)random_data, 12, sizeof(random_data));
 
-    print_register_buffer();
+    //print_register_buffer();
 
     // Signal a restore
     printf("%s", UNIQUE_RESTORE_START_KEY);
@@ -346,6 +381,7 @@ static int pyrestore_process(void) {
                 mp_hal_stdout_tx_str("a"); // send ACK
                 size = writeback_register_stream();
                 printf("%d\r\n", (int)sizeof(registers)); // send size ACK
+                mp_hal_delay_ms(1000);
                 restore_registers();
                 break;
             case 's':
@@ -364,8 +400,8 @@ static int pyrestore_process(void) {
             break;
     }
 
-    print_random_data();
-    print_register_buffer();
+    //print_random_data();
+    //print_register_buffer();
 
     //mp_hal_delay_ms(1000);
 
@@ -430,7 +466,8 @@ int checkpoint(void)
     // Send the unique key to signal the PC that we are about to send a checkpoint
     printf("%s", UNIQUE_CP_START_KEY);
 
-    checkpoint_memory((char *)random_data, sizeof(random_data));
+    //checkpoint_memory_region((char *)random_data, sizeof(random_data));
+    checkpoint_memory();
     checkpoint_registers();
 
     // NB: restore point
