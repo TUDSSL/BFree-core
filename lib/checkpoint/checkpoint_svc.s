@@ -120,9 +120,16 @@ SVC_Handler:
 
     subs    r0, #16
 
+    /* save the sp */
     mrs     r1, msp
     subs    r0, #4
     str     r1, [r0]
+
+    /* restore the used registers (r4-r7) */
+    ldr     r0, =registers_top
+    ldr     r0, [r0]
+    subs    r0, #16
+    ldmia   r0!,{r4-r7}
 
     b       b_cleanup
 
