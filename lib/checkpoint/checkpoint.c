@@ -157,12 +157,14 @@ static inline void checkpoint_registers(void) {
 
     CP_SAVE_REGISTERS();
 
-    // Send the registers
-    printf("r%d\r\n", sizeof(registers));
+    if (checkpoint_svc_restore == 0) {
+        // Send the registers
+        printf("r%d\r\n", sizeof(registers));
 
-    // Send the data
-    write_serial_raw((char *)registers, sizeof(registers));
-    mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
+        // Send the data
+        write_serial_raw((char *)registers, sizeof(registers));
+        mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
+    }
 }
 
 static void restore_registers(void) {
