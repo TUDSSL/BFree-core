@@ -52,7 +52,7 @@ def send_continue(serial):
     serial.write('c'.encode())
 
 def write_registers(serial, data):
-    print('Start register write')
+    print('>> Restore register segment')
 
     # Request to write the registers
     while True:
@@ -94,6 +94,8 @@ def write_segment(serial, addr_start, addr_end, data):
         print('Register checkpoint')
         write_registers(serial, data)
         return
+
+    print('>> Restore memory segment')
 
     segment_size = addr_end - addr_start
     if segment_size < 1:
@@ -297,89 +299,81 @@ def write_segments_to_json(filename, segments):
 ## Main loop
 ################################################################################
 
+try:
+    ser = serial.Serial(SERIAL_PORT)  # open serial port
+except serial.SerialException:
+    print('Could not open serial port: ' + SERIAL_PORT)
+    sys.exit()
+
+print('Opened serial port: ' + ser.name)
+
 def signal_handler(sig, filename):
     print('Exit')
+    try:
+        ser.close()
+    except:
+        # Nothing
+        print('Could not close serial port')
+
     sys.exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
 
-ser = serial.Serial(SERIAL_PORT)  # open serial port
-print('Opened serial port: ' + ser.name)
-
-
 CheckpointFile = CheckpointFilename()
 checkpoint_bytearray = bytearray()
+ser_raw = bytearray()
 checkpoint = False
 
 while True:
-    try:
-        line_raw = ser.readline()
-    except:
-        continue
+    if ser.in_waiting > 0:
+        rd = ser.read(1)
 
-    clean_bytes = bytearray(line_raw)
-
-    print_exclude_start = -1
-    print_exclude_end = -1
-
-    # Print serial data (act like an output only serial terminal)
-    print(line_raw, end='')
-    #print(line_raw)
-
-    if UNIQUE_CP_START_KEY.encode() in line_raw:
-        print('Found checkpoint start marker')
-        checkpoint = True
-
-        index_start = line_raw.find(UNIQUE_CP_START_KEY.encode())
-        index_end = index_start + len(UNIQUE_CP_START_KEY)
-        clean_bytes = clean_bytes[index_end:]
-        print_exclude_start = index_end
-
-        #print('Clean bytes START:', clean_bytes.decode())
-
-        #line_bytearray.extend('test'.encode())
-    if UNIQUE_CP_END_KEY.encode() in line_raw:
-        print('Found checkpoint end marker')
-        checkpoint = False
-
-        index_start = line_raw.find(UNIQUE_CP_END_KEY.encode())
-
-        clean_bytes = clean_bytes[0:index_start]
-        #print('Clean bytes END:', clean_bytes.decode())
-
-        checkpoint_bytearray.extend(clean_bytes)
-        segments = parse_checkpoint(checkpoint_bytearray)
-        write_segments_to_json(CheckpointFile.filename(), segments)
-        checkpoint_bytearray = bytearray()
-
-        print_exclude_end = index_start
-
-        #print(checkpoint_bytearray.decode())
-
-    if checkpoint == True:
-        checkpoint_bytearray.extend(clean_bytes)
-
-    if UNIQUE_RESTORE_START_KEY.encode() in line_raw:
-        print('Found restore request marker')
-        fn = CheckpointFile.last_filename()
-        if fn == '':
-            print('No previous checkpoint, sending continue command')
-            send_continue(ser)
+        if checkpoint:
+            checkpoint_bytearray.extend(rd)
         else:
-            print('Restoring checkpoint from: ' + fn)
-            segments = get_restore_segments(fn)
-            print(segments) # debug
+            ser_raw.extend(rd)
 
-            # Retsore the segments
-            for segment in segments:
-                write_segment(ser, segment.addr_start, segment.addr_end, segment.data)
-            send_continue(ser)
+        if UNIQUE_CP_START_KEY.encode() in ser_raw:
+            print('\n>> Found checkpoint start marker')
+            checkpoint = True
+            checkpoint_bytearray = bytearray()
+            ser_raw = bytearray()
 
-    # Does not work like this
-    #print_bytes = bytearray(line_raw[0:print_exclude_start])
-    #print_bytes.extend(line_raw[print_exclude_end:])
-    #print('Print bytes:')
-    #print(print_bytes)
-    #print(print_bytes.decode())
+        elif UNIQUE_CP_END_KEY.encode() in checkpoint_bytearray:
+            print('\n>> Found checkpoint end marker')
+            checkpoint = False
 
+            # Remove the key from the data
+            start_key = checkpoint_bytearray.find(UNIQUE_CP_END_KEY.encode())
+            checkpoint_bytearray = checkpoint_bytearray[0:start_key]
+
+            # Parse the checkpoint data
+            segments = parse_checkpoint(checkpoint_bytearray)
+            write_segments_to_json(CheckpointFile.filename(), segments)
+
+        elif not checkpoint and (UNIQUE_RESTORE_START_KEY.encode() in ser_raw):
+            print('\n>> Found restore request marker')
+            ser_raw = bytearray()
+
+            fn = CheckpointFile.last_filename()
+            if fn == '':
+                print('No previous checkpoint, sending continue command')
+                send_continue(ser)
+            else:
+                print('Restoring checkpoint from: ' + fn)
+                segments = get_restore_segments(fn)
+                print(segments) # debug
+
+                # Retsore the segments
+                for segment in segments:
+                    write_segment(ser, segment.addr_start, segment.addr_end, segment.data)
+                send_continue(ser)
+                print('Done with restore from: ' + fn)
+
+        elif not checkpoint:
+            try:
+                wr = rd.decode()
+            except UnicodeDecodeError:
+                wr = rd
+            print(wr, end='')
 
