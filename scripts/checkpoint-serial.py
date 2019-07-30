@@ -2,6 +2,8 @@ import serial
 import time
 import json
 import time
+import signal
+import sys
 
 from dataclasses import dataclass
 from typing import List
@@ -79,10 +81,10 @@ def write_registers(serial, data):
     # Wait for size response to ACK
     size_str = serial.readline().decode()
     size_resp = int(size_str)
-    if size_resp == 16*4:
+    if size_resp == len(data):
        print('Size ack received')
     else:
-        print('Invalid ack size received:', str(size_resp), 'expected:', segment_size)
+        print('Invalid ack size received:', str(size_resp), 'expected:', len(data))
         return
 
 
@@ -208,12 +210,17 @@ def parse_checkpoint(cp):
 
         elif cp[0] == b'r'[0]:
             print('Parsing register checkpoint')
-            cp = cp[1:]
-            data = list(cp[0:16*4]) # Registers are 4 bytes each, 16 registers
+            idx = cp[1:].find('\r\n'.encode())
+            size = int(cp[1:idx+1].decode())
+            print('Register size:', size)
+
+            cp = cp[idx+3:]
+
+            data = list(cp[0:size])
             print('Data list (reg):', data)
             segments.append(Segment(-1, -1, data))
 
-            cp = cp[16*4+2:] # add 2 for \r\n
+            cp = cp[size+3:] # add 2 for \r\n
             print('remaining data:', cp)
 
         else:
@@ -290,6 +297,12 @@ def write_segments_to_json(filename, segments):
 ## Main loop
 ################################################################################
 
+def signal_handler(sig, filename):
+    print('Exit')
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
+
 ser = serial.Serial(SERIAL_PORT)  # open serial port
 print('Opened serial port: ' + ser.name)
 
@@ -299,8 +312,15 @@ checkpoint_bytearray = bytearray()
 checkpoint = False
 
 while True:
-    line_raw = ser.readline()
+    try:
+        line_raw = ser.readline()
+    except:
+        continue
+
     clean_bytes = bytearray(line_raw)
+
+    print_exclude_start = -1
+    print_exclude_end = -1
 
     # Print serial data (act like an output only serial terminal)
     print(line_raw, end='')
@@ -313,6 +333,7 @@ while True:
         index_start = line_raw.find(UNIQUE_CP_START_KEY.encode())
         index_end = index_start + len(UNIQUE_CP_START_KEY)
         clean_bytes = clean_bytes[index_end:]
+        print_exclude_start = index_end
 
         #print('Clean bytes START:', clean_bytes.decode())
 
@@ -322,14 +343,16 @@ while True:
         checkpoint = False
 
         index_start = line_raw.find(UNIQUE_CP_END_KEY.encode())
-        clean_bytes = clean_bytes[0:index_start]
 
+        clean_bytes = clean_bytes[0:index_start]
         #print('Clean bytes END:', clean_bytes.decode())
 
         checkpoint_bytearray.extend(clean_bytes)
         segments = parse_checkpoint(checkpoint_bytearray)
         write_segments_to_json(CheckpointFile.filename(), segments)
         checkpoint_bytearray = bytearray()
+
+        print_exclude_end = index_start
 
         #print(checkpoint_bytearray.decode())
 
@@ -351,4 +374,12 @@ while True:
             for segment in segments:
                 write_segment(ser, segment.addr_start, segment.addr_end, segment.data)
             send_continue(ser)
+
+    # Does not work like this
+    #print_bytes = bytearray(line_raw[0:print_exclude_start])
+    #print_bytes.extend(line_raw[print_exclude_end:])
+    #print('Print bytes:')
+    #print(print_bytes)
+    #print(print_bytes.decode())
+
 
