@@ -27,6 +27,27 @@ extern uint32_t _ebss;
 extern uint32_t _estack;
 
 
+/* Register checkpoint
+ * Registers are copied to `registers[]` in the SVC_Handler ISR
+ * For the register layout in the array check `checkpoint_svc.s
+ */
+volatile uint32_t registers[17];
+volatile uint32_t *registers_top = &registers[17]; // one after the end
+volatile uint32_t checkpoint_svc_restore = 0;
+
+#define CP_SAVE_REGISTERS()                                                    \
+  do {                                                                         \
+    checkpoint_svc_restore = 0;                                                \
+    __asm__ volatile("SVC 42");                                                \
+    __ISB();                                                                   \
+  } while (0)
+
+#define CP_RESTORE_REGISTERS()                                                 \
+  do {                                                                         \
+    checkpoint_svc_restore = 1;                                                \
+    __asm__ volatile("SVC 43");                                                \
+  } while (0)
+
 /*
  * Atomic flag manipulation
  */
@@ -61,9 +82,6 @@ static inline void checkpoint_prepare(volatile atomic_flag_t *new_flag)
 extern uint32_t _esafestack;
 static volatile uint32_t *pyrestore_return_stack; // If we want to return to the stack (so we don't restore a register checkpoint)
 
-volatile uint32_t registers[17];
-volatile uint32_t *registers_top = &registers[17]; // one after the end
-volatile uint32_t checkpoint_svc_restore = 0;
 
 void write_serial_raw(char *data, size_t length) {
     uint32_t count = 0;
@@ -136,100 +154,19 @@ static inline void _set_sp(uint32_t *sp) {
  */
 __attribute__((always_inline))
 static inline void checkpoint_registers(void) {
-    // For some reason placing it all in the same __asm__ causes a compiler error
-    __asm__ volatile (
-            "MOV %[r0], r0 \n\t"
-            "MOV %[r1], r1 \n\t"
-            "MOV %[r2], r2 \n\t"
-            "MOV %[r3], r3 \n\t"
-            "MOV %[r4], r4 \n\t"
-            "MOV %[r5], r5 \n\t"
-            "MOV %[r6], r6 \n\t"
-            "MOV %[r7], r7 \n\t"
-            "MOV %[r8], r8 \n\t"
-            :   [r0] "=r" (registers[0]),
-                [r1] "=r" (registers[1]),
-                [r2] "=r" (registers[2]),
-                [r3] "=r" (registers[3]),
-                [r4] "=r" (registers[4]),
-                [r5] "=r" (registers[5]),
-                [r6] "=r" (registers[6]),
-                [r7] "=r" (registers[7]),
-                [r8] "=r" (registers[8])
-            : /* input */
-            : "memory" /* clobber */
-    );
-    __asm__ volatile (
-            "MOV %[r9], r9 \n\t"
-            "MOV %[r10], r10 \n\t"
-            "MOV %[r11], r11 \n\t"
-            "MOV %[r12], r12 \n\t"
-            "MOV %[r13], r13 \n\t"
-            "MOV %[r14], r14 \n\t"
-            "MOV %[r15], r15 \n\t"
-            :   [r9] "=r" (registers[9]),
-                [r10] "=r" (registers[10]),
-                [r11] "=r" (registers[11]),
-                [r12] "=r" (registers[12]),
-                [r13] "=r" (registers[13]),
-                [r14] "=r" (registers[14]),
-                [r15] "=r" (registers[15])
-            : /* input */
-            : "memory" /* clobber */
-    );
+
+    CP_SAVE_REGISTERS();
 
     // Send the registers
-    mp_hal_stdout_tx_str("r");
+    printf("r%d\r\n", sizeof(registers));
 
     // Send the data
     write_serial_raw((char *)registers, sizeof(registers));
     mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
 }
 
-// TODO: Something here crashes everything, maybe OS related? Should single step in GDB
-__attribute__((noinline))
 static void restore_registers(void) {
-    // For some reason placing it all in the same __asm__ causes a compiler error
-    __asm__ volatile (
-            "MOV r0, %[r0]\n\t"
-            "MOV r1, %[r1]\n\t"
-            "MOV r2, %[r2]\n\t"
-            "MOV r3, %[r3]\n\t"
-            "MOV r4, %[r4]\n\t"
-            "MOV r5, %[r5]\n\t"
-            "MOV r6, %[r6]\n\t"
-            "MOV r7, %[r7]\n\t"
-            "MOV r8, %[r8]\n\t"
-            :
-            :   [r0] "r" (registers[0]),
-                [r1] "r" (registers[1]),
-                [r2] "r" (registers[2]),
-                [r3] "r" (registers[3]),
-                [r4] "r" (registers[4]),
-                [r5] "r" (registers[5]),
-                [r6] "r" (registers[6]),
-                [r7] "r" (registers[7]),
-                [r8] "r" (registers[8])
-            : "memory" /* clobber */
-    );
-    __asm__ volatile (
-            "MOV r9 , %[r9]\n\t"
-            "MOV r10, %[r10]\n\t"
-            "MOV r11, %[r11]\n\t"
-            "MOV r12, %[r12]\n\t"
-            "MOV r13, %[r13]\n\t"
-            "MOV r14, %[r14]\n\t"
-            "MOV r15, %[r15]\n\t"
-            :
-            :   [r9]  "r" (registers[9]),
-                [r10] "r" (registers[10]),
-                [r11] "r" (registers[11]),
-                [r12] "r" (registers[12]),
-                [r13] "r" (registers[13]),
-                [r14] "r" (registers[14]),
-                [r15] "r" (registers[15])
-            : "memory" /* clobber */
-    );
+    CP_RESTORE_REGISTERS();
 }
 
 static void checkpoint_memory_region(char *start, size_t size) {
@@ -380,7 +317,7 @@ static int pyrestore_process(void) {
             case 'r':
                 mp_hal_stdout_tx_str("a"); // send ACK
                 size = writeback_register_stream();
-                printf("%d\r\n", (int)sizeof(registers)); // send size ACK
+                printf("%d\r\n", size); // send size ACK
                 mp_hal_delay_ms(1000);
                 restore_registers();
                 break;

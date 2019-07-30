@@ -431,21 +431,12 @@ int __attribute__((used)) main(void) {
 
     // Restore a checkpoint (if required)
     //pyrestore();
-#if 0
     mp_hal_delay_ms(5000);
     if (checkpoint() == 0) {
         // Normal operation
         mp_hal_delay_ms(1000);
         pyrestore();
     }
-#endif
-    //SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
-    asm volatile("SVC 42");
-    __ISB();
-    //print_register_buffer();
-    checkpoint_svc_restore = 1;
-    asm volatile("SVC 43");
-    //SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
 
     while (1) {
         mp_hal_delay_ms(1000);
