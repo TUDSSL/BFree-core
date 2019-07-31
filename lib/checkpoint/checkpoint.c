@@ -11,6 +11,12 @@
 
 #include "lib/checkpoint/checkpoint.h"
 
+#define CP_REGISTERS    (1)
+#define CP_STACK        (1)
+#define CP_DATA         (1)
+#define CP_BSS          (0)
+#define CP_GARBAGE      (0)
+
 #define UNIQUE_CP_START_KEY "##CHECKPOINT_START##\n"
 #define UNIQUE_CP_END_KEY "##CHECKPOINT_END##\n"
 #define UNIQUE_RESTORE_START_KEY "##CHECKPOINT_RESTORE##\n"
@@ -26,6 +32,11 @@ extern uint32_t _ebss;
 /* stack */
 extern uint32_t _estack;
 
+/* Safe stack (not checkpointed)
+ * restoring a checkpoint happens on this stack
+ */
+extern uint32_t _esafestack;
+
 
 /* Register checkpoint
  * Registers are copied to `registers[]` in the SVC_Handler ISR
@@ -34,6 +45,10 @@ extern uint32_t _estack;
 volatile uint32_t registers[17];
 volatile uint32_t *registers_top = &registers[17]; // one after the end
 volatile uint32_t checkpoint_svc_restore = 0;
+
+static inline uint32_t checkpoint_restored(void) {
+    return (uint32_t)checkpoint_svc_restore;
+}
 
 #define CP_SAVE_REGISTERS()                                                    \
   do {                                                                         \
@@ -46,6 +61,7 @@ volatile uint32_t checkpoint_svc_restore = 0;
   do {                                                                         \
     checkpoint_svc_restore = 1;                                                \
     __asm__ volatile("SVC 43");                                                \
+    __ISB();                                                                   \
   } while (0)
 
 /*
@@ -54,35 +70,6 @@ volatile uint32_t checkpoint_svc_restore = 0;
 #define CHECKPOINT_FLAG         (1<<0)
 #define CHECKPOINT_FLAG_MASK    CHECKPOINT_FLAG
 
-typedef uint32_t atomic_flag_t;
-
-volatile atomic_flag_t checkpoint_flag = 0;
-static inline atomic_flag_t cp_get_atomic_flag(void)
-{
-    return checkpoint_flag;
-}
-
-static inline void cp_set_atomic_flag(atomic_flag_t flag)
-{
-    checkpoint_flag = flag;
-}
-
-static inline atomic_flag_t checkpoint_other(atomic_flag_t flag)
-{
-    flag ^= CHECKPOINT_FLAG;
-    return flag;
-}
-
-static inline void checkpoint_prepare(volatile atomic_flag_t *new_flag)
-{
-    *new_flag = cp_get_atomic_flag();
-    *new_flag = checkpoint_other(*new_flag);
-}
-
-extern uint32_t _esafestack;
-static volatile uint32_t *pyrestore_return_stack; // If we want to return to the stack (so we don't restore a register checkpoint)
-
-
 void write_serial_raw(char *data, size_t length) {
     uint32_t count = 0;
     while (count < length && tud_cdc_connected()) {
@@ -90,31 +77,6 @@ void write_serial_raw(char *data, size_t length) {
         usb_background();
     }
 }
-
-/*
- * Restore process states
- *  P = python restore script, M = metro board
- *
- *(1)   if input byte == 'c': DONE
- *(2)   if input byte == 's': restore memory segment
- *(3)   if input byte == 'r': restore register
- *
- *(4)   s:
- *(5)       send 'a'                        // Ack
- *(6)       get $addr_start:$addr_end       // in hex
- *(7)       send $size                      // in dec $addr_end-$addr_start as ACK
- *(8)       get data[0:$size]               // receive all the data restore bytes
- *(9)       send $size                      // in dec as ack
- *(10)      GOTO (1)
- *
- */
-
-
-/*
- * Because we restore the stack we can't operate on the normal stack
- * So we need to switch the stack to a dedicated one (_esafestack) and restore
- * the stack afterwords
- */
 
 __attribute__((always_inline))
 static inline uint32_t * _get_sp(void) {
@@ -140,24 +102,12 @@ static inline void _set_sp(uint32_t *sp) {
     );
 }
 
-/*
- * ARM m0 registers:
- *  r0, r1, r2, r3: function arguments
- *  r4, r5, r6, r7, r8: normal registers
- *  r9: normal register / real frame pointer
- *  r10: stack limit
- *  r11: argument pointer
- *  r12: scratch register
- *  r13: stack pointer
- *  r14: link register
- *  r15: program counter
- */
 __attribute__((always_inline))
 static inline void checkpoint_registers(void) {
 
     CP_SAVE_REGISTERS();
 
-    if (checkpoint_svc_restore == 0) {
+    if (checkpoint_restored() == 0) {
         // Send the registers
         printf("r%d\r\n", sizeof(registers));
 
@@ -167,7 +117,7 @@ static inline void checkpoint_registers(void) {
     }
 }
 
-static void restore_registers(void) {
+static inline void restore_registers(void) {
     CP_RESTORE_REGISTERS();
 }
 
@@ -190,23 +140,29 @@ static void checkpoint_memory_region(char *start, size_t size) {
 }
 
 void checkpoint_memory(void) {
+
+#if CP_STACK
     uint32_t *sp = _get_sp();
-
-    //int data_size = &_erelocate - &_srelocate;
-    //int bss_size = &_ebss - &_sbss;
     int stack_size = &_estack - sp;
-
-    //char *data_ptr = (char *)&_srelocate;
-    //char *bss_ptr = (char *)&_sbss;
     char *stack_ptr = (char *)sp;
+    checkpoint_memory_region(stack_ptr, stack_size);
+#endif
+
+#if CP_DATA
+    int data_size = &_erelocate - &_srelocate;
+    char *data_ptr = (char *)&_srelocate;
+    checkpoint_memory_region(data_ptr, data_size);
+#endif
+
+#if CP_BSS
+    int bss_size = &_ebss - &_sbss;
+    char *bss_ptr = (char *)&_sbss;
+    checkpoint_memory_region(bss_ptr, bss_size);
+#endif
 
     //printf(".stack\t[%p-%p,%d]\r\n", sp, &_estack, stack_size);
     //printf(".data\t[%p-%p,%d]\r\n", &_srelocate, &_erelocate, data_size);
     //printf(".bss\t[%p-%p,%d]\r\n", &_sbss, &_ebss, bss_size);
-
-    checkpoint_memory_region(stack_ptr, stack_size);
-    //checkpoint_memory_region(data_ptr, data_size);
-    //checkpoint_memory_region(bss_ptr, bss_size);
 }
 
 
@@ -293,17 +249,28 @@ void print_register_buffer(void) {
     }
 }
 
-
+/*
+ * Restore process states
+ *  P = python restore script, M = metro board
+ *
+ *(1)   if input byte == 'c': DONE
+ *(2)   if input byte == 's': restore memory segment
+ *(3)   if input byte == 'r': restore register
+ *
+ *(4)   s:
+ *(5)       send 'a'                        // Ack
+ *(6)       get $addr_start:$addr_end       // in hex
+ *(7)       send $size                      // in dec $addr_end-$addr_start as ACK
+ *(8)       get data[0:$size]               // receive all the data restore bytes
+ *(9)       send $size                      // in dec as ack
+ *(10)      GOTO (1)
+ *
+ */
 __attribute__((noinline))
 static int pyrestore_process(void) {
     char *addr_start;
     char *addr_end;
     ssize_t size;
-
-    // TEST: fill `random_data` with all 12
-    memset((void *)random_data, 12, sizeof(random_data));
-
-    //print_register_buffer();
 
     // Signal a restore
     printf("%s", UNIQUE_RESTORE_START_KEY);
@@ -320,7 +287,6 @@ static int pyrestore_process(void) {
                 mp_hal_stdout_tx_str("a"); // send ACK
                 size = writeback_register_stream();
                 printf("%d\r\n", size); // send size ACK
-                mp_hal_delay_ms(1000);
                 restore_registers();
                 break;
             case 's':
@@ -339,17 +305,21 @@ static int pyrestore_process(void) {
             break;
     }
 
-    //print_random_data();
-    //print_register_buffer();
-
-    //mp_hal_delay_ms(1000);
-
     return 1;
 }
 
-// NB. This function can NOT use the stack or funny things will happen
+/*
+ * Because we restore the stack we can't operate on the normal stack
+ * So we need to switch the stack to a dedicated one (_esafestack) and restore
+ * the stack afterwards
+ *
+ * NB. This function can NOT use the stack or funny things will happen
+ */
 __attribute__((noinline))
 void pyrestore(void) {
+    /* If we want to return to the stack (so we don't restore a register checkpoint) */
+    static volatile uint32_t *pyrestore_return_stack;
+
     pyrestore_return_stack = _get_sp();
     _set_sp(&_esafestack); // Set SP to the safe stack
 
@@ -376,49 +346,26 @@ void pyrestore(void) {
  *  M -> P: UNIQUE_CP_END_KEY       // Continue
  */
 
-
-
-#if 0
-static void checkpoint_exec(void) {
-    // Send the unique key to signal the PC that we are about to send a checkpoint
-    printf("%s", UNIQUE_CP_START_KEY);
-
-    checkpoint_memory((char *)random_data, sizeof(random_data));
-    checkpoint_registers();
-
-    // Send the unique key to signal the PC that we are done sending checkpoint data
-    printf("%s", UNIQUE_CP_END_KEY);
-}
-#endif
-
 int checkpoint(void)
 {
-    /* Must be volatile as this function is also the restore point
-     * and the flag is used to check if it is a restore or not
-     */
-    volatile atomic_flag_t new_flag;
     int restore_state;
-
-    // Prepare for the next checkpoint
-    checkpoint_prepare(&new_flag);
 
     // Send the unique key to signal the PC that we are about to send a checkpoint
     printf("%s", UNIQUE_CP_START_KEY);
 
-    //checkpoint_memory_region((char *)random_data, sizeof(random_data));
     checkpoint_memory();
+
+#if CP_REGISTERS
     checkpoint_registers();
+#endif
 
     // NB: restore point
-    if (cp_get_atomic_flag() == new_flag) {
+    restore_state = checkpoint_restored();
+    if (restore_state) {
         /* Restored */
-        restore_state = 1;
         printf("%s", "Restored\r\n");
     } else {
         /* Normal operation */
-        restore_state = 0;
-        cp_set_atomic_flag(new_flag);
-
         // Send the unique key to signal the PC that we are done sending checkpoint data
         printf("%s", UNIQUE_CP_END_KEY);
     }
