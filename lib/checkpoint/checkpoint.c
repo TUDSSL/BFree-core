@@ -14,7 +14,7 @@
 #define CP_REGISTERS    (1)
 #define CP_STACK        (1)
 #define CP_DATA         (1)
-#define CP_BSS          (0)
+#define CP_BSS          (1)
 #define CP_GARBAGE      (0)
 
 #define UNIQUE_CP_START_KEY "##CHECKPOINT_START##\n"
@@ -23,11 +23,11 @@
 
 /* .data section */
 extern uint32_t _srelocate;
-extern uint32_t _erelocate;
+extern uint32_t _erelocate_cp;
 
 /* .bss section */
 extern uint32_t _sbss;
-extern uint32_t _ebss;
+extern uint32_t _ebss_cp;
 
 /* stack */
 extern uint32_t _estack;
@@ -43,7 +43,7 @@ extern uint32_t _esafestack;
  * For the register layout in the array check `checkpoint_svc.s
  */
 volatile uint32_t registers[17];
-volatile uint32_t *registers_top = &registers[17]; // one after the end
+const volatile uint32_t *registers_top = &registers[17]; // one after the end
 volatile uint32_t checkpoint_svc_restore = 0;
 
 static inline uint32_t checkpoint_restored(void) {
@@ -71,7 +71,7 @@ static inline uint32_t checkpoint_restored(void) {
 #define CHECKPOINT_FLAG_MASK    CHECKPOINT_FLAG
 
 void write_serial_raw(char *data, size_t length) {
-    uint32_t count = 0;
+    size_t count = 0;
     while (count < length && tud_cdc_connected()) {
         count += tud_cdc_write(data + count, length - count);
         usb_background();
@@ -138,24 +138,24 @@ static void checkpoint_memory_region(char *start, size_t size) {
     write_serial_raw(start, size);
     mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
 }
-
+ volatile size_t stack_size;
 void checkpoint_memory(void) {
 
 #if CP_STACK
     uint32_t *sp = _get_sp();
-    int stack_size = &_estack - sp;
+    stack_size = (size_t)&_estack - (size_t)sp;
     char *stack_ptr = (char *)sp;
     checkpoint_memory_region(stack_ptr, stack_size);
 #endif
 
 #if CP_DATA
-    int data_size = &_erelocate - &_srelocate;
+    size_t data_size = (size_t)&_erelocate_cp - (size_t)&_srelocate;
     char *data_ptr = (char *)&_srelocate;
     checkpoint_memory_region(data_ptr, data_size);
 #endif
 
 #if CP_BSS
-    int bss_size = &_ebss - &_sbss;
+    size_t bss_size = (size_t)&_ebss_cp - (size_t)&_sbss;
     char *bss_ptr = (char *)&_sbss;
     checkpoint_memory_region(bss_ptr, bss_size);
 #endif
