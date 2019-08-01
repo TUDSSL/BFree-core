@@ -50,6 +50,11 @@ SECTIONS
     {
         . = ALIGN(4);
         _srelocate = .;        /* create a global symbol at data start; used by startup code in order to initialise the .data section in RAM */
+        /* *(*.usb_serial_number) */
+        INCLUDE "include-checkpoint-data.ld" ;
+        . = ALIGN(4);
+        _erelocate_cp = .;
+
         *(.ramfunc)
         *(.ramfunc*)
         *(.data)           /* .data sections */
@@ -65,6 +70,10 @@ SECTIONS
         . = ALIGN(4);
         _sbss = .;
         _szero = .;         /* define a global symbol at bss start; used by startup code */
+        INCLUDE "include-checkpoint-bss.ld" ;
+        . = ALIGN(4);
+        _ebss_cp = .;
+
         *(.bss)
         *(.bss*)
         *(COMMON)

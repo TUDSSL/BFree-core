@@ -1,0 +1,5 @@
+/* Objects to include in the checkpoint */
+*(*.next_stack_size)
+*(*.yasmarang_d)
+*(*.yasmarang_n)
+*(*.yasmarang_pad)
