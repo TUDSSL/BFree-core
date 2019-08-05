@@ -270,8 +270,17 @@ static int pyrestore_process(void) {
     char *addr_end;
     ssize_t size;
 
-    // Signal a restore
-    printf("%s", UNIQUE_RESTORE_START_KEY);
+    // Signal a restore (keep trying)
+    while (1) {
+        printf("%s", UNIQUE_RESTORE_START_KEY);
+        // TODO find out if waiting and flushing is needed
+        usb_background(); // flush
+        mp_hal_delay_ms(10); // wait a bit for a response
+        if (serial_bytes_available()) {
+            break;
+        }
+        mp_hal_delay_ms(500);
+    }
 
     while (1) {
         int c = mp_hal_stdin_rx_chr();

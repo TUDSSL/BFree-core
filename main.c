@@ -433,7 +433,7 @@ int __attribute__((used)) main(void) {
     serial_init();
 
     // Restore a checkpoint (if required)
-    mp_hal_delay_ms(5000);
+    //mp_hal_delay_ms(5000);
     pyrestore();
 
     if (checkpoint() == 1) {
