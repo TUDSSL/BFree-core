@@ -15,7 +15,11 @@
 #define CP_STACK        (1)
 #define CP_DATA         (1)
 #define CP_BSS          (1)
-#define CP_GARBAGE      (0)
+#define CP_GC           (1)
+
+#if CP_GC
+#include "py/runtime.h"
+#endif
 
 #define UNIQUE_CP_START_KEY "##CHECKPOINT_START##\n"
 #define UNIQUE_CP_END_KEY "##CHECKPOINT_END##\n"
@@ -136,12 +140,12 @@ static void checkpoint_memory_region(char *start, size_t size) {
     write_serial_raw(start, size);
     mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
 }
- volatile size_t stack_size;
+ volatile size_t gc_size;
 void checkpoint_memory(void) {
 
 #if CP_STACK
     uint32_t *sp = _get_sp();
-    stack_size = (size_t)&_estack - (size_t)sp;
+    size_t stack_size = (size_t)&_estack - (size_t)sp;
     char *stack_ptr = (char *)sp;
     checkpoint_memory_region(stack_ptr, stack_size);
 #endif
@@ -156,6 +160,17 @@ void checkpoint_memory(void) {
     size_t bss_size = (size_t)&_ebss_cp - (size_t)&_sbss;
     char *bss_ptr = (char *)&_sbss;
     checkpoint_memory_region(bss_ptr, bss_size);
+#endif
+
+#if CP_GC
+    char *gc_ptr_start = (char *)MP_STATE_MEM(gc_pool_start);
+    char *gc_ptr_end = (char *)MP_STATE_MEM(gc_pool_end);
+    if (gc_ptr_start != NULL && gc_ptr_end != NULL) {
+        gc_size = (size_t)gc_ptr_end - (size_t)gc_ptr_start;
+        if (gc_size > 0) {
+            checkpoint_memory_region(gc_ptr_start, gc_size);
+        }
+    }
 #endif
 
     //printf(".stack\t[%p-%p,%d]\r\n", sp, &_estack, stack_size);
