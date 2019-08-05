@@ -46,9 +46,7 @@ volatile uint32_t registers[17];
 const volatile uint32_t *registers_top = &registers[17]; // one after the end
 volatile uint32_t checkpoint_svc_restore = 0;
 
-static inline uint32_t checkpoint_restored(void) {
-    return (uint32_t)checkpoint_svc_restore;
-}
+#define checkpoint_restored() checkpoint_svc_restore
 
 #define CP_SAVE_REGISTERS()                                                    \
   do {                                                                         \
@@ -348,8 +346,6 @@ void pyrestore(void) {
 
 int checkpoint(void)
 {
-    int restore_state;
-
     // Send the unique key to signal the PC that we are about to send a checkpoint
     printf("%s", UNIQUE_CP_START_KEY);
 
@@ -360,8 +356,7 @@ int checkpoint(void)
 #endif
 
     // NB: restore point
-    restore_state = checkpoint_restored();
-    if (restore_state) {
+    if (checkpoint_restored()) {
         /* Restored */
         printf("%s", "Restored\r\n");
     } else {
@@ -370,5 +365,5 @@ int checkpoint(void)
         printf("%s", UNIQUE_CP_END_KEY);
     }
 
-    return restore_state;
+    return checkpoint_restored();
 }
