@@ -4,6 +4,7 @@ import json
 import time
 import signal
 import sys
+from time import sleep
 
 from dataclasses import dataclass
 from typing import List
@@ -325,55 +326,71 @@ ser_raw = bytearray()
 checkpoint = False
 
 while True:
-    if ser.in_waiting > 0:
-        rd = ser.read(1)
+    try:
+        if ser.in_waiting > 0:
+            rd = ser.read(1)
 
-        if checkpoint:
-            checkpoint_bytearray.extend(rd)
-        else:
-            ser_raw.extend(rd)
-
-        if UNIQUE_CP_START_KEY.encode() in ser_raw:
-            print('\n>> Found checkpoint start marker')
-            checkpoint = True
-            checkpoint_bytearray = bytearray()
-            ser_raw = bytearray()
-
-        elif UNIQUE_CP_END_KEY.encode() in checkpoint_bytearray:
-            print('\n>> Found checkpoint end marker')
-            checkpoint = False
-
-            # Remove the key from the data
-            start_key = checkpoint_bytearray.find(UNIQUE_CP_END_KEY.encode())
-            checkpoint_bytearray = checkpoint_bytearray[0:start_key]
-
-            # Parse the checkpoint data
-            segments = parse_checkpoint(checkpoint_bytearray)
-            write_segments_to_json(CheckpointFile.filename(), segments)
-
-        elif not checkpoint and (UNIQUE_RESTORE_START_KEY.encode() in ser_raw):
-            print('\n>> Found restore request marker')
-            ser_raw = bytearray()
-
-            fn = CheckpointFile.last_filename()
-            if fn == '':
-                print('No previous checkpoint, sending continue command')
-                send_continue(ser)
+            if checkpoint:
+                checkpoint_bytearray.extend(rd)
             else:
-                print('Restoring checkpoint from: ' + fn)
-                segments = get_restore_segments(fn)
-                print(segments) # debug
+                ser_raw.extend(rd)
 
-                # Retsore the segments
-                for segment in segments:
-                    write_segment(ser, segment.addr_start, segment.addr_end, segment.data)
-                send_continue(ser)
-                print('Done with restore from: ' + fn)
+            if UNIQUE_CP_START_KEY.encode() in ser_raw:
+                print('\n>> Found checkpoint start marker')
+                checkpoint = True
+                checkpoint_bytearray = bytearray()
+                ser_raw = bytearray()
 
-        elif not checkpoint:
+            elif UNIQUE_CP_END_KEY.encode() in checkpoint_bytearray:
+                print('\n>> Found checkpoint end marker')
+                checkpoint = False
+
+                # Remove the key from the data
+                start_key = checkpoint_bytearray.find(UNIQUE_CP_END_KEY.encode())
+                checkpoint_bytearray = checkpoint_bytearray[0:start_key]
+
+                # Parse the checkpoint data
+                segments = parse_checkpoint(checkpoint_bytearray)
+                write_segments_to_json(CheckpointFile.filename(), segments)
+
+            elif not checkpoint and (UNIQUE_RESTORE_START_KEY.encode() in ser_raw):
+                print('\n>> Found restore request marker')
+                ser_raw = bytearray()
+
+                fn = CheckpointFile.last_filename()
+                if fn == '':
+                    print('No previous checkpoint, sending continue command')
+                    send_continue(ser)
+                else:
+                    print('Restoring checkpoint from: ' + fn)
+                    segments = get_restore_segments(fn)
+                    print(segments) # debug
+
+                    # Retsore the segments
+                    for segment in segments:
+                        write_segment(ser, segment.addr_start, segment.addr_end, segment.data)
+                    send_continue(ser)
+                    print('Done with restore from: ' + fn)
+
+            elif not checkpoint:
+                try:
+                    wr = rd.decode()
+                except UnicodeDecodeError:
+                    wr = rd
+                print(wr, end='')
+
+    except OSError:
+        ser.close()
+        # On a reset we gen an OSError because the USB is re-initialized
+        sleep(3)
+        while True:
             try:
-                wr = rd.decode()
-            except UnicodeDecodeError:
-                wr = rd
-            print(wr, end='')
+                ser = serial.Serial(SERIAL_PORT)  # open serial port
+            except serial.SerialException:
+                print('Could not open serial port: ' + SERIAL_PORT)
+                sleep(1)
+                continue
+
+            print('Opened serial port: ' + ser.name)
+            break
 

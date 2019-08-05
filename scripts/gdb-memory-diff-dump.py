@@ -8,8 +8,8 @@ LOG_FILE='/tmp/gdb.log'
 MEM_DUMP_BASENAME = '_memory_dump_'
 
 breakpoints = [
-        'main.c:439',
-        'main.c:442',
+        'main.c:447', # After checkpoint
+        'main.c:441', # After restore
         'HardFault_Handler',
         ]
 
