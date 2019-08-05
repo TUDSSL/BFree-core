@@ -10,6 +10,10 @@ from dataclasses import dataclass
 from typing import List
 
 PRINT_CHECKPOINT_JSON = False
+PRINT_CHECKPOINT_CONTENT = False
+PRINT_SEGMENTS = False
+PRINT_SEGMENT_DATA = False
+PRINT_REMAINING_DATA = False
 
 SERIAL_PORT='/dev/ttyACM0'
 #SERIAL_PORT='/dev/pts/13'
@@ -177,7 +181,8 @@ def write_segment(serial, addr_start, addr_end, data):
 
 def parse_checkpoint(cp):
     print('Parsing checkpoint')
-    print('Checkpoint data:', cp, end='')
+    if PRINT_CHECKPOINT_CONTENT == True:
+        print('Checkpoint data:', cp, end='')
 
     segments = []
 
@@ -203,13 +208,15 @@ def parse_checkpoint(cp):
             size = addr_end - addr_start
             print('Data size:', size)
             data_ba = cp[0:size]
-            print('Data:', data_ba)
             data = list(data_ba)
-            print('Data list:', data)
+            if PRINT_SEGMENT_DATA == True:
+                print('Data:', data_ba)
+                print('Data list:', data)
 
             segments.append(Segment(addr_start, addr_end, data))
             cp = cp[size+2:] # add 2 for \r\n
-            print('remaining data:', cp)
+            if PRINT_REMAINING_DATA == True:
+                print('remaining data:', cp)
 
         elif cp[0] == b'r'[0]:
             print('Parsing register checkpoint')
@@ -220,17 +227,21 @@ def parse_checkpoint(cp):
             cp = cp[idx+3:]
 
             data = list(cp[0:size])
-            print('Data list (reg):', data)
+            if PRINT_SEGMENT_DATA == True:
+                print('Data list (reg):', data)
             segments.append(Segment(-1, -1, data))
 
             cp = cp[size+3:] # add 2 for \r\n
-            print('remaining data:', cp)
+            if PRINT_REMAINING_DATA == True:
+                print('remaining data:', cp)
 
         else:
             print('Unknown command character: ' + str(cp[0]))
             return
 
-    print('Segments:', segments)
+    if PRINT_SEGMENTS == True:
+        print('Segments:', segments)
+
     return segments
 
 
@@ -337,13 +348,14 @@ def process_loop(ser, CheckpointFile):
                 else:
                     print('Restoring checkpoint from: ' + fn)
                     segments = get_restore_segments(fn)
-                    print(segments) # debug
+                    if PRINT_SEGMENTS == True:
+                        print(segments)
 
                     # Retsore the segments
                     for segment in segments:
                         write_segment(ser, segment.addr_start, segment.addr_end, segment.data)
                     send_continue(ser)
-                    print('Done with restore from: ' + fn)
+                    print('>> Done with restore from: ' + fn)
 
             elif not checkpoint:
                 try:
