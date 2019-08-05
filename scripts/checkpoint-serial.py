@@ -295,38 +295,11 @@ def write_segments_to_json(filename, segments):
     with open(filename, 'w') as outfile:
         json.dump(json_data, outfile)
 
-
-################################################################################
-## Main loop
-################################################################################
-
-try:
-    ser = serial.Serial(SERIAL_PORT)  # open serial port
-except serial.SerialException:
-    print('Could not open serial port: ' + SERIAL_PORT)
-    sys.exit()
-
-print('Opened serial port: ' + ser.name)
-
-def signal_handler(sig, filename):
-    print('Exit')
-    try:
-        ser.close()
-    except:
-        # Nothing
-        print('Could not close serial port')
-
-    sys.exit(0)
-
-signal.signal(signal.SIGINT, signal_handler)
-
-CheckpointFile = CheckpointFilename()
-checkpoint_bytearray = bytearray()
-ser_raw = bytearray()
-checkpoint = False
-
-while True:
-    try:
+def process_loop(ser, CheckpointFile):
+    checkpoint_bytearray = bytearray()
+    ser_raw = bytearray()
+    checkpoint = False
+    while True:
         if ser.in_waiting > 0:
             rd = ser.read(1)
 
@@ -379,18 +352,43 @@ while True:
                     wr = rd
                 print(wr, end='')
 
-    except OSError:
-        ser.close()
-        # On a reset we gen an OSError because the USB is re-initialized
-        sleep(3)
-        while True:
-            try:
-                ser = serial.Serial(SERIAL_PORT)  # open serial port
-            except serial.SerialException:
-                print('Could not open serial port: ' + SERIAL_PORT)
-                sleep(1)
-                continue
 
-            print('Opened serial port: ' + ser.name)
-            break
+
+################################################################################
+## Main loop
+################################################################################
+def signal_handler(sig, filename):
+    print('Exit')
+    try:
+        ser.close()
+    except:
+        # Nothing
+        print('Could not close serial port')
+
+    sys.exit(0)
+
+# Regsiter Ctrl-C
+signal.signal(signal.SIGINT, signal_handler)
+
+
+CheckpointFile = CheckpointFilename()
+
+while True:
+    was_open = False
+    try:
+        ser = serial.Serial(SERIAL_PORT)  # open serial port
+        print('Opened serial port: ' + ser.name)
+        was_open = True
+        process_loop(ser, CheckpointFile)
+
+    except (serial.SerialException, OSError) as e:
+        print(e)
+        #print('Could not open serial port: ' + SERIAL_PORT)
+        if was_open:
+            ser.close()
+            was_open = False
+
+        # Retry in 1 second
+        sleep(1)
+        continue
 
