@@ -13,21 +13,20 @@ breakpoints = [
         'HardFault_Handler',
         ]
 
-memory_dump_ranges = [
-        ('stack',   0x20007b90, 0x20007bf8),
-        ('data',    0x20000000, 0x20000010),
-        ('bss',     0x20000400, 0x200006c4),
-        ]
+memory_dump_ranges = {
+        'stack':    [0x20007b90, 0x20007bf8],
+        'data':     [0x20000000, 0x20000010],
+        'bss':      [0x20000400, 0x200006c4],
+        }
 
 def build_bin_filename(prefix, memname):
     fname = prefix + MEM_DUMP_BASENAME + memname + '.bin'
     return fname
 
 def dump_memory(prefix):
-    for mem_range in memory_dump_ranges:
-        memname = mem_range[0]
-        start_addr = str(mem_range[1])
-        end_addr = str(mem_range[2])
+    for memname in memory_dump_ranges:
+        start_addr = str(memory_dump_ranges[memname][0])
+        end_addr = str(memory_dump_ranges[memname][1])
         cmnd_str = 'dump binary memory ' \
             + build_bin_filename(prefix, memname) \
             + ' ' + start_addr + ' ' + end_addr
@@ -63,17 +62,27 @@ def breakpoint_handler(event):
             is_restore_str = gdb.execute('print checkpoint_svc_restore', to_string=True)
             is_restore = int(re.search('.*=\s*(.*)$', is_restore_str)[1])
             if is_restore == 0:
+                # Get the current stack pointer to dump the stack
+                # Update it so the restore uses the same one
+                sp_str = gdb.execute('print $sp', to_string=True)
+                sp = int(re.search('.*(0x.*)$', sp_str)[1], 16)
+                print('current SP: ' + hex(sp))
+                try:
+                    # The stack pointer is the low address (it grows down)
+                    memory_dump_ranges['stack'][0] = sp
+                except KeyError:
+                    pass
+
                 dump_memory('after-cp')
             else:
                 dump_memory('after-restore')
 
                 # print the memdiff
-                for mem_range in memory_dump_ranges:
-                    memname = mem_range[0]
+                for memname in memory_dump_ranges:
                     print('memdiff ' + memname)
                     diff = memdiff.main(build_bin_filename('after-cp', memname), \
                             build_bin_filename('after-restore', memname), \
-                            mem_range[1])
+                            memory_dump_ranges[memname][0])
                     if diff is not None:
                         for diff_addr in diff:
                             sym_cmd = 'info symbol ' + hex(diff_addr)
