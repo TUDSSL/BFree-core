@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 
 import memdiff
 
@@ -8,8 +9,7 @@ LOG_FILE='/tmp/gdb.log'
 MEM_DUMP_BASENAME = '_memory_dump_'
 
 breakpoints = [
-        'main.c:447', # After checkpoint
-        'main.c:441', # After restore
+        'checkpoint.c:383', # after checkpoint (restore point)
         'HardFault_Handler',
         ]
 
@@ -31,7 +31,7 @@ def dump_memory(prefix):
         cmnd_str = 'dump binary memory ' \
             + build_bin_filename(prefix, memname) \
             + ' ' + start_addr + ' ' + end_addr
-        print('Dump command: ' + cmnd_str)
+        print('Dumping memory: ' + cmnd_str)
         gdb.execute(cmnd_str)
 
 def setup():
@@ -58,25 +58,29 @@ def breakpoint_handler(event):
     print('EVENT: %s' % (event))
     location = event.breakpoint.location
     if location in breakpoints:
-        print('location: ' + location)
-        gdb.execute("bt")
+        #print('location: ' + location)
         if location == breakpoints[0]:
-            dump_memory('after-cp')
-        elif location == breakpoints[1]:
-            dump_memory('after-restore')
+            is_restore_str = gdb.execute('print checkpoint_svc_restore', to_string=True)
+            is_restore = int(re.search('.*=\s*(.*)$', is_restore_str)[1])
+            if is_restore == 0:
+                dump_memory('after-cp')
+            else:
+                dump_memory('after-restore')
 
-            # print the memdiff
-            for mem_range in memory_dump_ranges:
-                memname = mem_range[0]
-                print('memdiff ' + memname)
-                diff = memdiff.main(build_bin_filename('after-cp', memname), \
-                        build_bin_filename('after-restore', memname), \
-                        mem_range[1])
-                if diff is not None:
-                    for diff_addr in diff:
-                        sym_cmd = 'info symbol ' + hex(diff_addr)
-                        #print('Sumbol command: ' + sym_cmd)
-                        gdb.execute(sym_cmd)
+                # print the memdiff
+                for mem_range in memory_dump_ranges:
+                    memname = mem_range[0]
+                    print('memdiff ' + memname)
+                    diff = memdiff.main(build_bin_filename('after-cp', memname), \
+                            build_bin_filename('after-restore', memname), \
+                            mem_range[1])
+                    if diff is not None:
+                        for diff_addr in diff:
+                            sym_cmd = 'info symbol ' + hex(diff_addr)
+                            #print('Sumbol command: ' + sym_cmd)
+                            gdb.execute(sym_cmd)
+        else:
+            gdb.execute("bt")
 
         gdb.execute('c')
 

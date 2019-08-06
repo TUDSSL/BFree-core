@@ -380,10 +380,7 @@ int checkpoint(void)
 #endif
 
     // NB: restore point
-    if (checkpoint_restored()) {
-        /* Restored */
-        printf("%s", "Restored\r\n");
-    } else {
+    if (checkpoint_restored() == 0) {
         /* Normal operation */
         // Send the unique key to signal the PC that we are done sending checkpoint data
         printf("%s", UNIQUE_CP_END_KEY);
