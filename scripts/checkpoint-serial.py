@@ -4,6 +4,7 @@ import json
 import time
 import signal
 import sys
+import argparse
 from time import sleep
 
 from dataclasses import dataclass
@@ -16,19 +17,26 @@ PRINT_SEGMENT_DATA = False
 PRINT_REMAINING_DATA = False
 
 SERIAL_PORT='/dev/ttyACM0'
-#SERIAL_PORT='/dev/pts/13'
-RESTORE_JSON_FILE='restore.json'
 
 UNIQUE_CP_START_KEY = '##CHECKPOINT_START##\r\n'
 UNIQUE_CP_END_KEY = '##CHECKPOINT_END##\r\n'
 
 UNIQUE_RESTORE_START_KEY = '##CHECKPOINT_RESTORE##\r\n'
 
+QUIET_OUTPUT = False
+
 @dataclass
 class Segment:
     addr_start: int
     addr_end: int
     data: List[int]
+
+
+# Conditional print depending on the arguments
+def print_cond(*args, **kwargs):
+    if QUIET_OUTPUT == False:
+        print("".join(map(str,args)), **kwargs)
+
 
 
 ################################################################################
@@ -57,11 +65,11 @@ def send_continue(serial):
     serial.write('c'.encode())
 
 def write_registers(serial, data):
-    print('>> Restore register segment')
+    print_cond('>> Restore register segment')
 
     # Request to write the registers
     while True:
-        print('Requesting register write')
+        print_cond('Requesting register write')
 
         # Clear trash from the input
         serial.flushInput()
@@ -69,54 +77,54 @@ def write_registers(serial, data):
         serial.write('r'.encode())
         cb = serial.read(1)
         if cb == b'a':
-            print('Ack received')
+            print_cond('Ack received')
             break
-        print('No or invalid response: ' + str(cb))
+        print_cond('No or invalid response: ' + str(cb))
         time.sleep(1)
 
     # Send the registers
-    print('Sending register data')
+    print_cond('Sending register data')
     serial.write(bytearray(data))
     serial.flush()
-    print('Done sending data')
+    print_cond('Done sending data')
 
     # Check for a data ack
-    print('Check for size ack')
+    print_cond('Check for size ack')
 
     # Wait for size response to ACK
     size_str = serial.readline().decode()
     size_resp = int(size_str)
     if size_resp == len(data):
-       print('Size ack received')
+       print_cond('Size ack received')
     else:
-        print('Invalid ack size received:', str(size_resp), 'expected:', len(data))
+        print_cond('Invalid ack size received:', str(size_resp), 'expected:', len(data))
         return
 
 
 def write_segment(serial, addr_start, addr_end, data):
 
     if addr_start == addr_end == -1:
-        print('Register checkpoint')
+        print_cond('Register checkpoint')
         write_registers(serial, data)
         return
 
-    print('>> Restore memory segment')
+    print_cond('>> Restore memory segment')
 
     segment_size = addr_end - addr_start
     if segment_size < 1:
-        print('Invalid segment size:', segment_size)
+        print_cond('Invalid segment size:', segment_size)
         return
 
     if len(data) != segment_size:
-        print('Data size not equal to segment size (data size:',
+        print_cond('Data size not equal to segment size (data size:',
                 len(data), 'segment size:', segment_size)
         return
 
-    print('Start segment write')
+    print_cond('Start segment write')
 
     # Request to write a segment
     while True:
-        print('Requesting segment write')
+        print_cond('Requesting segment write')
 
         # Clear trash from the input
         serial.flushInput()
@@ -124,14 +132,14 @@ def write_segment(serial, addr_start, addr_end, data):
         serial.write('s'.encode())
         cb = serial.read(1)
         if cb == b'a':
-            print('Ack received')
+            print_cond('Ack received')
             break
-        print('No or invalid response: ' + str(cb))
+        print_cond('No or invalid response: ' + str(cb))
         time.sleep(1)
 
     # Write the address range
     segment_range_str = format(addr_start, 'x') + ':' + format(addr_end, 'x') + '\n'
-    print('Writing segment: ' + segment_range_str, end='')
+    print_cond('Writing segment: ' + segment_range_str, end='')
     serial.write(segment_range_str.encode())     # write a string
     serial.flush()
 
@@ -139,27 +147,27 @@ def write_segment(serial, addr_start, addr_end, data):
     size_str = serial.readline()
     size_resp = int(size_str)
     if size_resp == segment_size:
-       print('Size ack received')
+       print_cond('Size ack received')
     else:
-        print('Invalid ack size received:', size_str, 'expected:', segment_size)
+        print_cond('Invalid ack size received:', size_str, 'expected:', segment_size)
         return
 
     # Send the actual data
-    print('Sending ' + str(segment_size) + ' bytes of data')
+    print_cond('Sending ' + str(segment_size) + ' bytes of data')
     serial.write(bytearray(data))
     serial.flush()
-    print('Done sending data')
+    print_cond('Done sending data')
 
     # Check for a data ack
-    print('Check for size ack')
+    print_cond('Check for size ack')
 
     # Wait for size response to ACK
     size_str = serial.readline().decode()
     size_resp = int(size_str)
     if size_resp == segment_size:
-       print('Size ack received')
+       print_cond('Size ack received')
     else:
-        print('Invalid ack size received:', str(size_resp), 'expected:', segment_size)
+        print_cond('Invalid ack size received:', str(size_resp), 'expected:', segment_size)
         return
 
 
@@ -180,7 +188,7 @@ def write_segment(serial, addr_start, addr_end, data):
 #   M -> P: UNIQUE_CP_END_KEY       // Continue
 
 def parse_checkpoint(cp):
-    print('Parsing checkpoint')
+    print_cond('Parsing checkpoint')
     if PRINT_CHECKPOINT_CONTENT == True:
         print('Checkpoint data:', cp, end='')
 
@@ -189,15 +197,15 @@ def parse_checkpoint(cp):
     while len(cp) > 0:
 
         if cp[0] == b's'[0]:
-            print('Parsing segment checkpoint')
+            print_cond('Parsing segment checkpoint')
             idx = cp[1:].find(':'.encode())
             addr_start = cp[1:idx+1].decode()
-            print('Start address: ' + addr_start)
+            print_cond('Start address: ' + addr_start)
 
             cp = cp[idx+2:]
             idx = cp.find('\r\n'.encode())
             addr_end = cp[0:idx+1].decode()
-            print('End address: ' + addr_end)
+            print_cond('End address: ' + addr_end)
 
             cp = cp[idx+2:]
 
@@ -206,7 +214,7 @@ def parse_checkpoint(cp):
             addr_end = int(addr_end, 16)
 
             size = addr_end - addr_start
-            print('Data size:', size)
+            print_cond('Data size:', size)
             data_ba = cp[0:size]
             data = list(data_ba)
             if PRINT_SEGMENT_DATA == True:
@@ -219,10 +227,10 @@ def parse_checkpoint(cp):
                 print('remaining data:', cp)
 
         elif cp[0] == b'r'[0]:
-            print('Parsing register checkpoint')
+            print_cond('Parsing register checkpoint')
             idx = cp[1:].find('\r\n'.encode())
             size = int(cp[1:idx+1].decode())
-            print('Register size:', size)
+            print_cond('Register size:', size)
 
             cp = cp[idx+3:]
 
@@ -279,7 +287,7 @@ def get_restore_segments(filename):
             for hex_mem_content in segment['data']:
                 hex_mem.append(hex_mem_content)
             #print('Data:', hex_mem)
-            print('Found restore entry for:', segment['addr_start'], '-', segment['addr_end'])
+            print_cond('Found restore entry for:', segment['addr_start'], '-', segment['addr_end'])
             addr_start = int(str(segment['addr_start']), 16)
             addr_end = int(str(segment['addr_end']), 16)
             segments.append(Segment(addr_start, addr_end, hex_mem))
@@ -320,13 +328,13 @@ def process_loop(ser, CheckpointFile):
                 ser_raw.extend(rd)
 
             if UNIQUE_CP_START_KEY.encode() in ser_raw:
-                print('\n>> Found checkpoint start marker')
+                print_cond('\n>> Found checkpoint start marker')
                 checkpoint = True
                 checkpoint_bytearray = bytearray()
                 ser_raw = bytearray()
 
             elif UNIQUE_CP_END_KEY.encode() in checkpoint_bytearray:
-                print('\n>> Found checkpoint end marker')
+                print_cond('\n>> Found checkpoint end marker')
                 checkpoint = False
 
                 # Remove the key from the data
@@ -338,15 +346,15 @@ def process_loop(ser, CheckpointFile):
                 write_segments_to_json(CheckpointFile.filename(), segments)
 
             elif not checkpoint and (UNIQUE_RESTORE_START_KEY.encode() in ser_raw):
-                print('\n>> Found restore request marker')
+                print_cond('\n>> Found restore request marker')
                 ser_raw = bytearray()
 
                 fn = CheckpointFile.last_filename()
                 if fn == '':
-                    print('No previous checkpoint, sending continue command')
+                    print_cond('No previous checkpoint, sending continue command')
                     send_continue(ser)
                 else:
-                    print('Restoring checkpoint from: ' + fn)
+                    print_cond('Restoring checkpoint from: ' + fn)
                     segments = get_restore_segments(fn)
                     if PRINT_SEGMENTS == True:
                         print(segments)
@@ -355,7 +363,7 @@ def process_loop(ser, CheckpointFile):
                     for segment in segments:
                         write_segment(ser, segment.addr_start, segment.addr_end, segment.data)
                     send_continue(ser)
-                    print('>> Done with restore from: ' + fn)
+                    print_cond('>> Done with restore from: ' + fn)
 
             elif not checkpoint:
                 try:
@@ -379,9 +387,16 @@ def signal_handler(sig, filename):
 
     sys.exit(0)
 
+# Parse arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("-q", "--quiet", help="hide the output", action='store_true')
+args = parser.parse_args()
+
+if args.quiet is not None:
+    QUIET_OUTPUT = args.quiet
+
 # Regsiter Ctrl-C
 signal.signal(signal.SIGINT, signal_handler)
-
 
 CheckpointFile = CheckpointFilename()
 
