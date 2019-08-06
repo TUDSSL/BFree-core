@@ -15,7 +15,7 @@
 #define CP_STACK        (1)
 #define CP_DATA         (1)
 #define CP_BSS          (1)
-#define CP_GC           (1)
+#define CP_GC           (0)
 
 #if CP_GC
 #include "py/runtime.h"
