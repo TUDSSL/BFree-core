@@ -391,8 +391,6 @@ int run_repl(void) {
 volatile int break_me_checkpoint = 0;
 volatile int break_me_restore = 0;
 
-void print_register_buffer(void);
-extern volatile uint32_t checkpoint_svc_restore;
 int __attribute__((used)) main(void) {
     memory_init();
 
@@ -439,14 +437,10 @@ int __attribute__((used)) main(void) {
     if (checkpoint() == 1) {
         // Restore
         break_me_restore = 1;
-        while (1) {
-            mp_hal_delay_ms(1000);
-            printf("*******RESTORED*******\r\n");
-        }
+        printf("*******RESTORED*******\r\n");
     } else {
         break_me_checkpoint = 1;
     }
-
 
     // Boot script is finished, so now go into REPL/main mode.
     int exit_code = PYEXEC_FORCED_EXIT;
