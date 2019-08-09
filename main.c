@@ -423,8 +423,10 @@ static uint8_t example_SPI_M_SERCOM1[13] = "Hello MSP430!"; //{1,2,3,4,5,6,7,8,9
 struct spi_m_sync_descriptor SPI_M_SERCOM1;
 busio_spi_obj_t nv_spi_bus;
 digitalio_digitalinout_obj_t cs_pin_nv;
+#define NV_CMD_READ_DATA 0x1E
+#define NV_CMD_WRITE_DATA 0x1A
 
-uint8_t init_nv_ckpt_interface(void) {
+void init_nv_ckpt_interface(void) {
      // Init the CS pin for NV memory controller
     cs_pin_nv.base.type = &digitalio_digitalinout_type;
     common_hal_digitalio_digitalinout_construct(&cs_pin_nv, &pin_PA18);
@@ -437,20 +439,31 @@ uint8_t init_nv_ckpt_interface(void) {
     nv_spi_bus.spi_desc = SPI_M_SERCOM1;
     common_hal_busio_spi_construct(&nv_spi_bus, &pin_PA17, &pin_PA16, &pin_PA19);
     //common_hal_busio_spi_configure(&nv_spi_bus, 1000000, 0, 0, 8);
-    return 0;
 }
 
-uint8_t write_bytes_to_nv(uint8_t * arr, uint16_t len, uint16_t addr) {
+void write_bytes_to_nv(uint8_t * arr, uint8_t len, uint16_t address) {
+    uint8_t request[4] = {NV_CMD_WRITE_DATA, (address >> 8) & 0xff, address & 0xff, len};
     while (!common_hal_busio_spi_try_lock(&nv_spi_bus)) {}
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
-    common_hal_busio_spi_write(&nv_spi_bus, arr, len);
+    bool status = common_hal_busio_spi_write(&nv_spi_bus, request, 4);
+    if(status) {
+        common_hal_busio_spi_write(&nv_spi_bus, arr, len);
+    }
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, true);
     common_hal_busio_spi_unlock(&nv_spi_bus);
-    return 0;
 }
 
-uint8_t read_bytes_from_nv(uint16_t addr, uint16_t len, uint8_t * target_arr) {
-    return 0;
+void read_bytes_from_nv(uint16_t address, uint8_t len, uint8_t * target_arr) {
+    uint8_t request[4] = {NV_CMD_WRITE_DATA, (address >> 8) & 0xff, address & 0xff, len};
+    while (!common_hal_busio_spi_try_lock(&nv_spi_bus)) {}
+    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
+    // Send the address and length to read and then read the data
+    bool status = common_hal_busio_spi_write(&nv_spi_bus, request, 4);
+    if(status) {
+        common_hal_busio_spi_read(&nv_spi_bus, target_arr, len, 0xff);
+    }
+    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, true);
+    common_hal_busio_spi_unlock(&nv_spi_bus);
 }
 
 /* End NV additions */
@@ -497,7 +510,7 @@ int __attribute__((used)) main(void) {
     // Initialize the checkpoint controller
     init_nv_ckpt_interface();
 
-    write_bytes_to_nv(example_SPI_M_SERCOM1, 13, 0x0);
+    write_bytes_to_nv(example_SPI_M_SERCOM1, 13, 0xDEED);
 
     // Boot script is finished, so now go into REPL/main mode.
     int exit_code = PYEXEC_FORCED_EXIT;
