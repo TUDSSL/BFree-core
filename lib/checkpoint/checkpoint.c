@@ -9,6 +9,37 @@
 #include "supervisor/usb.h"
 #include "tusb.h"
 
+// Intermittent group additions TODO: remove duplicates
+/**
+ * Pin mappings.
+ * Supports sending and recieving bytes to/from the external Non-volatile memory controller,
+ * which is a MSP430FR59941 in the current version.
+ *
+ * PIN ASSIGNMENTS  for the Interface to the MSP430.
+ * ===============================================
+ * CP  |     Function    |  MSP |  M0
+ * ===============================================
+ * D13 | CLK             | P5.2 | PA17/SERCOM1+3.1
+ * D12 | SOMI            | P5.1 | PA19/SERCOM1+3.3
+ * D11 | SIMO            | P5.0 | PA16/SERCOM1+3.0
+ * D10 | CS              | P5.3 | PA18/SERCOM1+3.2
+ * D9  | NV_WRITE / GPIO1| P1.7 | PA07
+ * D8  | VCAP_HALF / ADC | P7.4 | PA06
+ * D7  | NV_READ         | P1.6 | PA21
+ * D6  | PFAIL           | P2.0 | PA20
+ *
+ *
+ */
+#include "hal/include/hal_gpio.h"
+#include "atmel_start_pins.h"
+#include "instance/sercom1.h"
+#include "shared-bindings/busio/SPI.h"
+#include "shared-bindings/digitalio/DigitalInOut.h"
+#include "shared-bindings/microcontroller/Pin.h"
+#include "supervisor/shared/external_flash/common_commands.h"
+#include "supervisor/shared/external_flash/external_flash.h"
+#include "py/mpconfig.h"
+
 #include "lib/checkpoint/checkpoint.h"
 
 #define CP_REGISTERS    (1)
@@ -21,9 +52,15 @@
 #include "py/runtime.h"
 #endif
 
-#define UNIQUE_CP_START_KEY "##CHECKPOINT_START##\n"
-#define UNIQUE_CP_END_KEY "##CHECKPOINT_END##\n"
-#define UNIQUE_RESTORE_START_KEY "##CHECKPOINT_RESTORE##\n"
+/*
+ * One byte commands
+ */
+#define CPCMND_REQUEST_CHECKPOINT   'x'
+#define CPCMND_REQUEST_RESTORE      'y'
+#define CPCMND_SEGMENT              's'
+#define CPCMND_REGISTERS            'r'
+#define CPCMND_ACK                  'a'
+#define CPCMND_CONTINUE             'c'
 
 /* .data section */
 extern uint32_t _srelocate;
@@ -67,18 +104,58 @@ volatile uint32_t checkpoint_svc_restore = 0;
   } while (0)
 
 /*
- * Atomic flag manipulation
+ * NVM communication
  */
-#define CHECKPOINT_FLAG         (1<<0)
-#define CHECKPOINT_FLAG_MASK    CHECKPOINT_FLAG
+struct spi_m_sync_descriptor SPI_M_SERCOM1;
+busio_spi_obj_t nv_spi_bus;
+digitalio_digitalinout_obj_t cs_pin_nv;
 
-void write_serial_raw(char *data, size_t length) {
-    size_t count = 0;
-    while (count < length && tud_cdc_connected()) {
-        count += tud_cdc_write(data + count, length - count);
-        usb_background();
-    }
+void nvm_comm_init(void) {
+     // Init the CS pin for NV memory controller
+    cs_pin_nv.base.type = &digitalio_digitalinout_type;
+    common_hal_digitalio_digitalinout_construct(&cs_pin_nv, &pin_PA18);
+
+    // NV Set CS high (disabled).
+    common_hal_digitalio_digitalinout_switch_to_output(&cs_pin_nv, true, DRIVE_MODE_PUSH_PULL);
+    common_hal_digitalio_digitalinout_never_reset(&cs_pin_nv);
+    // SPI for NV comms
+    nv_spi_bus.base.type = &busio_spi_type;
+    nv_spi_bus.spi_desc = SPI_M_SERCOM1;
+    common_hal_busio_spi_construct(&nv_spi_bus, &pin_PA17, &pin_PA16, &pin_PA19);
+    //common_hal_busio_spi_configure(&nv_spi_bus, 1000000, 0, 0, 8);
 }
+
+void nvm_write(char *src, size_t len) {
+    while (!common_hal_busio_spi_try_lock(&nv_spi_bus));
+    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
+
+    common_hal_busio_spi_write(&nv_spi_bus, (uint8_t *)src, len);
+
+    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, true);
+    common_hal_busio_spi_unlock(&nv_spi_bus);
+}
+
+void nvm_write_byte(char src_byte) {
+    nvm_write(&src_byte, 1);
+}
+
+void nvm_read(char *dst, size_t len) {
+    while (!common_hal_busio_spi_try_lock(&nv_spi_bus)) {}
+    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
+
+    common_hal_busio_spi_read(&nv_spi_bus, (uint8_t *)dst, len, 0xff);
+
+    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, true);
+    common_hal_busio_spi_unlock(&nv_spi_bus);
+}
+
+char nvm_read_byte(void) {
+    char dst_byte;
+    nvm_read(&dst_byte, 1);
+
+    return dst_byte;
+}
+
 
 __attribute__((always_inline))
 static inline uint32_t * _get_sp(void) {
@@ -110,12 +187,29 @@ static inline void checkpoint_registers(void) {
     CP_SAVE_REGISTERS();
 
     if (checkpoint_restored() == 0) {
-        // Send the registers
-        printf("r%d\r\n", sizeof(registers));
+        char resp;
 
-        // Send the data
-        write_serial_raw((char *)registers, sizeof(registers));
-        mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
+        // Send the registers
+        nvm_write_byte(CPCMND_REGISTERS);
+
+        // Send the register size
+        registers_size_t register_size = sizeof(registers);
+        nvm_write((char *)&register_size, sizeof(registers_size_t));
+
+        // Read ACK
+        resp = nvm_read_byte();
+        if (resp != CPCMND_ACK) {
+            return;
+        }
+
+        // Send the registers
+        nvm_write((char *)registers, register_size);
+
+        // Read ACK
+        resp = nvm_read_byte();
+        if (resp != CPCMND_ACK) {
+            return;
+        }
     }
 }
 
@@ -125,6 +219,7 @@ static inline void restore_registers(void) {
 
 static void checkpoint_memory_region(char *start, size_t size) {
     char *end;
+    segment_size_t addr_start, addr_end, segment_size;
 
     if (size == 0) {
         // error
@@ -133,14 +228,34 @@ static void checkpoint_memory_region(char *start, size_t size) {
 
     end = &start[size];
 
-    mp_hal_stdout_tx_str("s");
-    printf("%lx:%lx\r\n", (uint32_t)start, (uint32_t)end);
+    addr_start = (segment_size_t)start;
+    addr_end = (segment_size_t)end;
+
+    printf("%lx:%lx\r\n", addr_start, addr_end);
+
+    nvm_write_byte(CPCMND_SEGMENT);
+    nvm_write((char *)&addr_start, sizeof(segment_size_t));
+    nvm_write((char *)&addr_end, sizeof(segment_size_t));
+
+    // Read the size as ACK
+    nvm_read((char *)&segment_size, sizeof(segment_size_t));
+
+    if (segment_size != size) {
+        printf("Sizes do not match, ACK size: %ld, expected: %ld\r\n",
+                segment_size, (segment_size_t)size);
+        return;
+    }
 
     // Send the data
-    write_serial_raw(start, size);
-    mp_hal_stdout_tx_str("\r\n"); // newline after the checkpoint to keep it readable
+    nvm_write(start, size);
+
+    // ACK
+    char resp = nvm_read_byte();
+    if (resp != CPCMND_ACK) {
+        return;
+    }
 }
- volatile size_t gc_size;
+
 void checkpoint_memory(void) {
 
 #if CP_STACK
@@ -166,7 +281,7 @@ void checkpoint_memory(void) {
     char *gc_ptr_start = (char *)MP_STATE_MEM(gc_pool_start);
     char *gc_ptr_end = (char *)MP_STATE_MEM(gc_pool_end);
     if (gc_ptr_start != NULL && gc_ptr_end != NULL) {
-        gc_size = (size_t)gc_ptr_end - (size_t)gc_ptr_start;
+        size_t gc_size = (size_t)gc_ptr_end - (size_t)gc_ptr_start;
         if (gc_size > 0) {
             checkpoint_memory_region(gc_ptr_start, gc_size);
         }
@@ -178,89 +293,6 @@ void checkpoint_memory(void) {
     //printf(".bss\t[%p-%p,%d]\r\n", &_sbss, &_ebss, bss_size);
 }
 
-
-static ssize_t process_segment_addr_range(char **addr_start, char **addr_end) {
-    char command[8+1+8+1]; // Enough for two 32-bit hex string numbers (NB no 0x prefix)
-    int idx = 0;
-
-    // Expect $addr_start:$addr_end as a hex string
-    while (1) {
-        int c = mp_hal_stdin_rx_chr();
-
-        if (c == '\n') {
-            command[idx] = '\0';
-            break;
-        } else {
-            // No error detection, everything else is assumed to be a hex addr
-            command[idx++] = (char)c;
-        }
-    }
-
-    // Decode the hex addr format
-    char *endptr;
-    *addr_start = (char *)strtol(command, &endptr, 16);
-    if (*endptr != ':') {
-        // Error parsing command
-        return 0;
-    }
-    char *cmd_ptr = &endptr[1]; // skip ':'
-    *addr_end = (char *)strtol(cmd_ptr, &endptr, 16);
-
-    if (*addr_start > *addr_end) {
-        // start addr > endaddr
-        return -1;
-    }
-
-    ssize_t size = *addr_end - *addr_start;
-
-    return size;
-}
-
-// Ideally there would be some kind of timeout
-static ssize_t writeback_memory_stream(char *addr_start, ssize_t size) {
-    size_t cnt;
-
-    // TODO error handling
-    if (size < 1)
-        return size;
-
-    for (cnt=0; cnt<(size_t)size; cnt++) {
-        char d = mp_hal_stdin_rx_chr();
-        addr_start[cnt] = d;
-    }
-
-    return cnt;
-}
-
-// Ideally there would be some kind of timeout
-static ssize_t writeback_register_stream(void) {
-    size_t cnt;
-    char *c_registers = (char *)&registers;
-
-    for (cnt=0; cnt<(size_t)sizeof(registers); cnt++) {
-        char d = mp_hal_stdin_rx_chr();
-        c_registers[cnt] = d;
-    }
-
-    return cnt;
-}
-
-// For debugging only
-char random_data[12] = {1,2,3,4,5,6,7,8,9,10,11,12};
-void print_random_data(void) {
-    mp_hal_stdout_tx_str("random_data: ");
-    for (unsigned int i=0; i<sizeof(random_data); i++) {
-        printf("%d, ", (int)random_data[i]);
-    }
-    mp_hal_stdout_tx_str("\r\n");
-}
-
-void print_register_buffer(void) {
-    printf("Register buffer:\r\n");
-    for (unsigned int i=0; i<16; i++) {
-        printf("r%d: %lx\r\n", i, registers[i]);
-    }
-}
 
 /*
  * Restore process states
@@ -281,24 +313,24 @@ void print_register_buffer(void) {
  */
 __attribute__((noinline))
 static int pyrestore_process(void) {
-    char *addr_start;
-    char *addr_end;
-    ssize_t size;
+    segment_size_t addr_start, addr_end, size;
 
+#if 0
     // Signal a restore (keep trying)
     while (1) {
-        printf("%s", UNIQUE_RESTORE_START_KEY);
-        // TODO find out if waiting and flushing is needed
-        usb_background(); // flush
+        nvm_write_byte(CPCMND_REQUEST_RESTORE);
         mp_hal_delay_ms(10); // wait a bit for a response
-        if (serial_bytes_available()) {
-            break;
-        }
+        resp = nvm_read_byte();
         mp_hal_delay_ms(500);
     }
+#endif
+
+    // TODO: make retry
+    nvm_write_byte(CPCMND_REQUEST_RESTORE);
+    mp_hal_delay_ms(10); // wait a bit for a response
 
     while (1) {
-        int c = mp_hal_stdin_rx_chr();
+        int c = nvm_read_byte();
         int done = 0;
 
         switch (c) {
@@ -306,17 +338,25 @@ static int pyrestore_process(void) {
                 done = 1;
                 break;
             case 'r':
-                mp_hal_stdout_tx_str("a"); // send ACK
-                size = writeback_register_stream();
-                printf("%d\r\n", size); // send size ACK
+                nvm_write_byte(CPCMND_ACK); // send ACK
+                nvm_read((char *)&registers, sizeof(registers));
+                nvm_write_byte(CPCMND_ACK); // send ACK
+
                 restore_registers();
                 break;
             case 's':
-                mp_hal_stdout_tx_str("a"); // send ACK
-                size = process_segment_addr_range(&addr_start, &addr_end);
-                printf("%d\r\n", (int)size); // send size ACK
-                size = writeback_memory_stream(addr_start, size);
-                printf("%d\r\n", (int)size); // send size ACK
+                nvm_write_byte(CPCMND_ACK); // send ACK
+                nvm_read((char *)&addr_start, sizeof(segment_size_t));
+                nvm_read((char *)&addr_end, sizeof(segment_size_t));
+
+                size = addr_end - addr_start;
+                nvm_write((char *)&size, sizeof(segment_size_t)); // send size as ACK
+
+                // Now the memory segment writeback starts
+                nvm_read((char *)&addr_start, size);
+
+                nvm_write_byte(CPCMND_ACK); // send ACK
+
                 break;
             default:
                 // Garbage or unknown command
@@ -328,6 +368,11 @@ static int pyrestore_process(void) {
     }
 
     return 1;
+}
+
+void checkpoint_init(void)
+{
+    nvm_comm_init();
 }
 
 /*
@@ -370,8 +415,13 @@ void pyrestore(void) {
 
 int checkpoint(void)
 {
-    // Send the unique key to signal the PC that we are about to send a checkpoint
-    printf("%s", UNIQUE_CP_START_KEY);
+    char resp;
+
+    nvm_write_byte(CPCMND_REQUEST_CHECKPOINT);
+    resp = nvm_read_byte();
+    if (resp != CPCMND_ACK) {
+        return 2; // TODO: make actual error handling
+    }
 
     checkpoint_memory();
 
@@ -382,8 +432,7 @@ int checkpoint(void)
     // NB: restore point
     if (checkpoint_restored() == 0) {
         /* Normal operation */
-        // Send the unique key to signal the PC that we are done sending checkpoint data
-        printf("%s", UNIQUE_CP_END_KEY);
+        nvm_write_byte(CPCMND_CONTINUE);
     }
 
     return checkpoint_restored();

@@ -58,39 +58,6 @@
 #include "supervisor/shared/stack.h"
 #include "supervisor/serial.h"
 
-// Intermittent group additions
-/**
- * Pin mappings.
- * Supports sending and recieving bytes to/from the external Non-volatile memory controller,
- * which is a MSP430FR59941 in the current version.
- * 
- * PIN ASSIGNMENTS  for the Interface to the MSP430.
- * ===============================================
- * CP  |     Function    |  MSP |  M0
- * ===============================================
- * D13 | CLK             | P5.2 | PA17/SERCOM1+3.1
- * D12 | SOMI            | P5.1 | PA19/SERCOM1+3.3
- * D11 | SIMO            | P5.0 | PA16/SERCOM1+3.0
- * D10 | CS              | P5.3 | PA18/SERCOM1+3.2
- * D9  | NV_WRITE / GPIO1| P1.7 | PA07
- * D8  | VCAP_HALF / ADC | P7.4 | PA06
- * D7  | NV_READ         | P1.6 | PA21
- * D6  | PFAIL           | P2.0 | PA20
- * 
- * 
- */
-#include "hal/include/hal_gpio.h"
-#include "atmel_start_pins.h"
-#include "instance/sercom1.h"
-#include "shared-bindings/busio/SPI.h"
-#include "shared-bindings/digitalio/DigitalInOut.h"
-#include "shared-bindings/microcontroller/Pin.h"
-#include "supervisor/shared/external_flash/common_commands.h"
-#include "supervisor/shared/external_flash/external_flash.h"
-#include "py/mpconfig.h"
-
-
-
 #if CIRCUITPY_NETWORK
 #include "shared-module/network/__init__.h"
 #endif
@@ -421,6 +388,7 @@ int run_repl(void) {
     return exit_code;
 }
 
+#if 0
 /* Just putting this all here in stead of changing compile process, HACKY SORRY / NOT SORRY-- Josiah */
 static uint8_t example_SPI_M_SERCOM1[13] = "Hello MSP430!"; //{1,2,3,4,5,6,7,8,9,10,11,12};//
 struct spi_m_sync_descriptor SPI_M_SERCOM1;
@@ -433,7 +401,7 @@ void init_nv_ckpt_interface(void) {
      // Init the CS pin for NV memory controller
     cs_pin_nv.base.type = &digitalio_digitalinout_type;
     common_hal_digitalio_digitalinout_construct(&cs_pin_nv, &pin_PA18);
-    
+
     // NV Set CS high (disabled).
     common_hal_digitalio_digitalinout_switch_to_output(&cs_pin_nv, true, DRIVE_MODE_PUSH_PULL);
     common_hal_digitalio_digitalinout_never_reset(&cs_pin_nv);
@@ -468,6 +436,7 @@ void read_bytes_from_nv(uint16_t address, uint8_t len, uint8_t * target_arr) {
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, true);
     common_hal_busio_spi_unlock(&nv_spi_bus);
 }
+#endif
 
 /* End NV additions */
 
@@ -514,9 +483,7 @@ int __attribute__((used)) main(void) {
     serial_init();
 
     // Initialize the checkpoint controller
-    init_nv_ckpt_interface();
-
-    write_bytes_to_nv(example_SPI_M_SERCOM1, 13, 0xDEED);
+    checkpoint_init();
 
     // Restore a checkpoint (if required)
     //mp_hal_delay_ms(5000);
