@@ -72,6 +72,9 @@ segment_t *checkpoint_segment_alloc(size_t size)
     segment_t *seg;
     seg = (segment_t *)checkpoint_working_end_allocated;
 
+    /* Adjust size to be 16-bit aligned */
+    size = (size % 2) ? size + 1 : size;
+
     /* Total size = size of the meta data + size of the segment data */
     size = size + sizeof(segment_meta_t);
     checkpoint_working_end_allocated = &checkpoint_working_end_allocated[size];

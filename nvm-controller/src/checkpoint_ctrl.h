@@ -28,7 +28,7 @@ typedef enum process_state {
 
 void process_error(process_state_t state);
 
-void process_dispatch(uint8_t byte);
+void process_dispatch(void);
 void process_command_byte(uint8_t byte);
 
 void process_checkpoint_command(void);

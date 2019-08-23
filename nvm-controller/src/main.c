@@ -4,12 +4,12 @@
 #include "ports.h"
 #include "mpy_comm.h"
 
-#include "checkpoint.h"
+#include "checkpoint_ctrl.h"
 
 
-volatile char test_data[10];
 
-#if 0
+#if 1
+volatile char read_buffer[1024];
 int main(void)
 {
     WDTCTL = WDTPW | WDTHOLD; // Stop WDT
@@ -26,19 +26,17 @@ int main(void)
     PM5CTL0 &= ~LOCKLPM5;
     __enable_interrupt();
 
-    /* Init test_data */
-    for (int i=0; i<sizeof(test_data); i++) {
-        test_data[i] = i;
-    }
+    // Init checkpoint
+    checkpoint_update();
 
     while (1) {
-        for (int i=0; i<1000; i++) {
-            P5OUT ^= BIT3;
-        }
-        mpy_write_dma_blocking(test_data, sizeof(test_data));
+        //mpy_read_dma_blocking(read_buffer, 1024);
+        process_dispatch();
+        //char byte = mpy_read_byte();
+        //printf("Byte: %c [0x%x]\r\n", byte, byte);
     }
 }
-#endif
+#else
 
 int main(void)
 {
@@ -87,6 +85,7 @@ int main(void)
         }
     }
 }
+#endif
 
 
 #if 0
