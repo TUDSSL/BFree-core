@@ -442,6 +442,9 @@ void read_bytes_from_nv(uint16_t address, uint8_t len, uint8_t * target_arr) {
 
 volatile int break_me_checkpoint = 0;
 volatile int break_me_restore = 0;
+#include "supervisor/usb.h"
+
+char test_array[1024];
 
 int __attribute__((used)) main(void) {
     memory_init();
@@ -484,6 +487,33 @@ int __attribute__((used)) main(void) {
 
     // Initialize the checkpoint controller
     checkpoint_init();
+
+#if 0
+    char test_msg[] = "test";
+    while (1) {
+       nvm_write(test_msg, sizeof(test_msg));
+       mp_hal_delay_ms(10);
+       usb_background();
+    }
+#endif
+
+#if 0
+    for (unsigned int i=0; i<sizeof(test_array); i++) {
+        test_array[i] = i%256;
+    }
+    while (1) {
+       nvm_write(test_array, sizeof(test_array));
+       mp_hal_delay_ms(10);
+       usb_background();
+    }
+#endif
+    while (1) {
+        if (checkpoint() == 0) {
+            mp_hal_delay_ms(1000);
+            pyrestore();
+        }
+        mp_hal_delay_ms(1000);
+    }
 
     // Restore a checkpoint (if required)
     //mp_hal_delay_ms(5000);
