@@ -14,7 +14,7 @@ void process_error(process_state_t state)
 {
     while (1) {
         char byte = mpy_read_byte();
-        printf("Next byte: %c [0x%x]\r\n", byte, byte);
+        printf("Next byte: [0x%x]\r\n", byte);
     }
 }
 
@@ -225,8 +225,9 @@ void process_restore_segment(segment_t *segment)
     resp = mpy_read_byte();
     if (resp != CPCMND_ACK) {
         // Error
-        printf("Restore segment: expected ACK after write got %x (%c)\r\n",
-                (int)resp, resp);
+        printf("Restore segment: expected ACK after write got %x \r\n",
+                (int)resp);
+        process_error(0);
         return;
     }
 }

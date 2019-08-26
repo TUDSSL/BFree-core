@@ -100,6 +100,16 @@ int mpy_write_dma_blocking(char *src, size_t size)
     while (!(DMA3CTL & DMAIFG)); // Wait for DMA to finish
     mpy_wr_low();
 
+    // Also clear the read IF (discard)
+    UCB1IFG &= ~UCRXIFG;
+    while(!(UCB1IFG & UCRXIFG));
+    UCB1IFG &= ~UCRXIFG;
+    while(!(UCB1IFG & UCRXIFG));
+    volatile char data = UCB1RXBUF;
+    (void)data;
+    UCB1IFG &= ~UCRXIFG;
+    UCB1TXBUF = 0;
+
     return ret;
 }
 

@@ -472,7 +472,7 @@ void pyrestore(void) {
  *  // END CP
  *  M -> P: UNIQUE_CP_END_KEY       // Continue
  */
-char test_data[] = {1,2,3,4,5,6,7,8,9};
+char test_data[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 int checkpoint(void)
 {
     char resp;
@@ -486,7 +486,7 @@ int checkpoint(void)
     }
 
     checkpoint_memory_region(test_data, sizeof(test_data));
-    checkpoint_memory();
+    //checkpoint_memory();
 
 #if CP_REGISTERS
     checkpoint_registers();
