@@ -412,7 +412,7 @@ static int pyrestore_process(void) {
 
                 // Now the memory segment writeback starts
                 nvm_wait_process();
-                nvm_read((char *)&addr_start, size);
+                nvm_read((char *)addr_start, size);
 
                 nvm_wait_process();
                 nvm_write_byte(CPCMND_ACK); // send ACK
@@ -485,8 +485,8 @@ int checkpoint(void)
         return 2; // TODO: make actual error handling
     }
 
-    checkpoint_memory_region(test_data, sizeof(test_data));
-    //checkpoint_memory();
+    //checkpoint_memory_region(test_data, sizeof(test_data));
+    checkpoint_memory();
 
 #if CP_REGISTERS
     checkpoint_registers();
