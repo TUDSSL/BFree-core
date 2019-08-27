@@ -15,6 +15,12 @@ int mpy_write_dma_blocking(char *src, size_t size);
 int mpy_read_dma(char *dst, size_t size);
 int mpy_read_dma_blocking(char *dst, size_t size);
 
+// SPI port 5
+#define SPI_MOSI BIT0   // P5.0
+#define SPI_MISO BIT1   // P5.1
+#define SPI_SCLK BIT2   // P5.2
+#define SPI_SC   BIT3   // P5.3
+
 #define WR_PIN BIT2
 
 static inline void mpy_wr_high(void)
@@ -25,6 +31,14 @@ static inline void mpy_wr_high(void)
 static inline void mpy_wr_low(void)
 {
     P1OUT &= ~WR_PIN;
+}
+
+static inline int mpy_cs(void)
+{
+    if (P5IN & SPI_SC) {
+        return 1;
+    }
+    return 0;
 }
 
 static inline char mpy_write_byte(char data)

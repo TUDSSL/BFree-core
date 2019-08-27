@@ -18,6 +18,13 @@ void process_error(process_state_t state)
     }
 }
 
+/*
+ * Wait for the SPI CS line to go unknown-high */
+void process_reboot_sync(void)
+{
+    while (mpy_cs() == 0);
+}
+
 // TODO: Can be made to a jump table if it all works
 void process_dispatch(void)
 {
@@ -172,8 +179,8 @@ void process_restore_command(void)
         checkpoint_get_next_segment(&seg_iter);
     }
 
-    //DBG_PRINT("REST Command: SEND CONTINUE\r\n");
-    //mpy_write_byte(CPCMND_CONTINUE);
+    DBG_PRINT("REST Command: SEND CONTINUE\r\n");
+    mpy_write_byte(CPCMND_CONTINUE);
 
     DBG_PRINT("Done with restore\r\n");
     ProcessState = PS_COMMAND;

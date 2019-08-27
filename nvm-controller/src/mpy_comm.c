@@ -3,11 +3,6 @@
 
 #include "mpy_comm.h"
 
-// SPI port 5
-#define SPI_MOSI BIT0   // P5.0
-#define SPI_MISO BIT1   // P5.1
-#define SPI_SCLK BIT2   // P5.2
-
 
 #define CHECK_SIZE(size_) do {  \
     if (size_ == 0) return 1;   \
@@ -22,6 +17,8 @@ void mpy_comm_init(void)
     /* Initialize the WR pin to signal when the MSP is done processing */
     P1OUT &= ~WR_PIN;
     P1DIR |= WR_PIN;
+
+    P5DIR &= ~SPI_SC; // Set CS as input
 
 #ifdef SPI_MASTER_TEST // SPI Master for testing
     /* Configure SPI */

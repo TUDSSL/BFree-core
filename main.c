@@ -507,6 +507,7 @@ int __attribute__((used)) main(void) {
        usb_background();
     }
 #endif
+#if 0
     while (1) {
         if (checkpoint() == 0) {
             mp_hal_delay_ms(1000);
@@ -514,6 +515,7 @@ int __attribute__((used)) main(void) {
         }
         mp_hal_delay_ms(1000);
     }
+#endif
 
     // Restore a checkpoint (if required)
     //mp_hal_delay_ms(5000);
@@ -522,7 +524,7 @@ int __attribute__((used)) main(void) {
     if (checkpoint() == 1) {
         // Restore
         break_me_restore = 1;
-        printf("*******RESTORED*******\r\n");
+        //printf("*******RESTORED*******\r\n");
     } else {
         break_me_checkpoint = 1;
     }

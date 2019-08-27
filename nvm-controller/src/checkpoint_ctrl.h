@@ -28,6 +28,8 @@ typedef enum process_state {
 
 void process_error(process_state_t state);
 
+void process_reboot_sync(void);
+
 void process_dispatch(void);
 void process_command_byte(uint8_t byte);
 

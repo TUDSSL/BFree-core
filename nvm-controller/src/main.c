@@ -29,6 +29,8 @@ int main(void)
     // Init checkpoint
     checkpoint_update();
 
+    process_reboot_sync();
+
     while (1) {
         //mpy_read_dma_blocking(read_buffer, 1024);
         process_dispatch();
