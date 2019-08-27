@@ -19,22 +19,10 @@ void mpy_comm_init(void)
     P1DIR |= WR_PIN;
 
     P5DIR &= ~SPI_SC; // Set CS as input
+}
 
-#ifdef SPI_MASTER_TEST // SPI Master for testing
-    /* Configure SPI */
-    EUSCI_B_SPI_initMasterParam param;
-    param.selectClockSource = EUSCI_B_SPI_CLOCKSOURCE_SMCLK;
-    param.clockSourceFrequency = 16000000; // 16MHz
-    param.desiredSpiClock = 100000; // 8MHz
-    param.msbFirst = EUSCI_B_SPI_LSB_FIRST;
-    param.clockPhase = EUSCI_B_SPI_CLOCKPOLARITY_INACTIVITY_LOW;
-    param.clockPolarity = EUSCI_B_SPI_3PIN;
-
-    EUSCI_B_SPI_initMaster(EUSCI_B1_BASE, &param);
-    EUSCI_B_SPI_enable(EUSCI_B1_BASE);
-    EUSCI_B_SPI_clearInterrupt(EUSCI_B0_BASE,
-            EUSCI_B_SPI_RECEIVE_INTERRUPT);
-#else // SPI Slave
+void mpy_comm_start(void)
+{
     /* Configure SPI */
     EUSCI_B_SPI_initSlaveParam param;
     param.msbFirst = EUSCI_B_SPI_MSB_FIRST;
@@ -46,9 +34,7 @@ void mpy_comm_init(void)
     EUSCI_B_SPI_enable(EUSCI_B1_BASE);
     EUSCI_B_SPI_clearInterrupt(EUSCI_B0_BASE,
             EUSCI_B_SPI_RECEIVE_INTERRUPT);
-#endif
 }
-
 
 int mpy_write(char *src, size_t size)
 {
@@ -74,6 +60,8 @@ int mpy_read(char *dst, size_t size)
 
 int mpy_write_dma(char *src, size_t size)
 {
+    mpy_wait_cs();
+
     DMACTL1 |= DMA3TSEL__UCB1TXIFG;  // UCB1TXIFG if DMA Channel 3
 
     __data16_write_addr((intptr_t) &DMA3SA,(intptr_t) src);
@@ -112,6 +100,8 @@ int mpy_write_dma_blocking(char *src, size_t size)
 
 int mpy_read_dma(char *dst, size_t size)
 {
+    mpy_wait_cs();
+
     DMACTL1 |= DMA3TSEL__UCB1RXIFG;  // UCB1RXIFG if DMA Channel 3
 
     __data16_write_addr((intptr_t) &DMA3SA,(intptr_t) &UCB1RXBUF);

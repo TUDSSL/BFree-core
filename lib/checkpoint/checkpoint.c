@@ -112,6 +112,15 @@ digitalio_digitalinout_obj_t cs_pin_nv;
 
 digitalio_digitalinout_obj_t wr_pin_nv;
 
+void nvm_wait_process(void) {
+    // Wait untill the NVM signals it's ready
+    while (common_hal_digitalio_digitalinout_get_value(&wr_pin_nv) == false) {
+#ifdef MICROPY_VM_HOOK_LOOP
+        MICROPY_VM_HOOK_LOOP
+#endif
+    }
+}
+
 void nvm_comm_init(void) {
      // Init the CS pin for NV memory controller
     cs_pin_nv.base.type = &digitalio_digitalinout_type;
@@ -120,6 +129,8 @@ void nvm_comm_init(void) {
     // NV Set CS high (disabled).
     common_hal_digitalio_digitalinout_switch_to_output(&cs_pin_nv, true, DRIVE_MODE_PUSH_PULL);
     common_hal_digitalio_digitalinout_never_reset(&cs_pin_nv);
+    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, true);
+
     // SPI for NV comms
     nv_spi_bus.base.type = &busio_spi_type;
     nv_spi_bus.spi_desc = SPI_M_SERCOM1;
@@ -136,6 +147,7 @@ void nvm_write(char *src, size_t len) {
     while (!common_hal_busio_spi_try_lock(&nv_spi_bus));
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
 
+    nvm_wait_process();
     common_hal_busio_spi_write(&nv_spi_bus, (uint8_t *)src, len);
 
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, true);
@@ -150,6 +162,7 @@ void nvm_read(char *dst, size_t len) {
     while (!common_hal_busio_spi_try_lock(&nv_spi_bus)) {}
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
 
+    nvm_wait_process();
     common_hal_busio_spi_read(&nv_spi_bus, (uint8_t *)dst, len, 0);
 
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, true);
@@ -161,16 +174,6 @@ char nvm_read_byte(void) {
     nvm_read(&dst_byte, 1);
 
     return dst_byte;
-}
-
-void nvm_wait_process(void) {
-    // Wait untill the NVM signals it's ready
-    while (common_hal_digitalio_digitalinout_get_value(&wr_pin_nv) == false) {
-       //usb_background();
-#ifdef MICROPY_VM_HOOK_LOOP
-        MICROPY_VM_HOOK_LOOP
-#endif
-    }
 }
 
 
@@ -207,27 +210,22 @@ static inline void checkpoint_registers(void) {
         char resp;
 
         // Send the registers
-        nvm_wait_process();
         nvm_write_byte(CPCMND_REGISTERS);
 
         // Send the register size
         registers_size_t register_size = sizeof(registers);
-        nvm_wait_process();
         nvm_write((char *)&register_size, sizeof(registers_size_t));
 
         // Read ACK
-        nvm_wait_process();
         resp = nvm_read_byte();
         if (resp != CPCMND_ACK) {
             return;
         }
 
         // Send the registers
-        nvm_wait_process();
         nvm_write((char *)registers, register_size);
 
         // Read ACK
-        nvm_wait_process();
         resp = nvm_read_byte();
         if (resp != CPCMND_ACK) {
             return;
@@ -256,20 +254,16 @@ static void checkpoint_memory_region(char *start, size_t size) {
 
     //printf("%lx:%lx\r\n", addr_start, addr_end);
 
-    nvm_wait_process();
     nvm_write_byte(CPCMND_SEGMENT);
 
-    nvm_wait_process();
     resp = nvm_read_byte();
     if (resp != CPCMND_ACK) {
         return;
     }
 
-    nvm_wait_process();
     nvm_write((char *)&addr_start, sizeof(segment_size_t));
     nvm_write((char *)&addr_end, sizeof(segment_size_t));
 
-    nvm_wait_process();
     // Read the size as ACK
     nvm_read((char *)&segment_size, sizeof(segment_size_t));
 
@@ -280,11 +274,9 @@ static void checkpoint_memory_region(char *start, size_t size) {
     }
 
     // Send the data
-    nvm_wait_process();
     nvm_write(start, size);
 
     // ACK
-    nvm_wait_process();
     resp = nvm_read_byte();
     if (resp != CPCMND_ACK) {
         return;
@@ -361,12 +353,10 @@ static int pyrestore_process(void) {
 #endif
 
     // TODO: make retry
-    nvm_wait_process();
     nvm_write_byte(CPCMND_REQUEST_RESTORE);
 
     bool restore_registers_pending = false;
     while (1) {
-        nvm_wait_process();
         int c = nvm_read_byte();
         int done = 0;
 
@@ -379,42 +369,33 @@ static int pyrestore_process(void) {
                 done = 1;
                 break;
             case CPCMND_REGISTERS:
-                nvm_wait_process();
                 nvm_write_byte(CPCMND_ACK); // send ACK
 
-                nvm_wait_process();
                 nvm_read((char *)&registers, sizeof(registers));
 
-                nvm_wait_process();
                 nvm_write_byte(CPCMND_ACK); // send ACK
 
                 //restore_registers();
                 restore_registers_pending = true;
                 break;
             case CPCMND_SEGMENT:
-                nvm_wait_process();
                 nvm_write_byte(CPCMND_ACK); // send ACK
 
-                nvm_wait_process();
                 nvm_read((char *)&addr_start, sizeof(segment_size_t));
                 nvm_read((char *)&addr_end, sizeof(segment_size_t));
 
                 size = addr_end - addr_start;
-                nvm_wait_process();
                 nvm_write((char *)&size, sizeof(segment_size_t)); // send size as ACK
 
                 // Now the memory segment writeback starts
-                nvm_wait_process();
                 nvm_read((char *)addr_start, size);
 
-                nvm_wait_process();
                 nvm_write_byte(CPCMND_ACK); // send ACK
 
                 break;
             default:
                 /* Garbage or unknown command */
                 // Try again to ask for a restore
-                nvm_wait_process();
                 nvm_write_byte(CPCMND_REQUEST_RESTORE);
                 break;
         }
@@ -474,7 +455,6 @@ int checkpoint(void)
 
     nvm_write_byte(CPCMND_REQUEST_CHECKPOINT);
 
-    nvm_wait_process();
     resp = nvm_read_byte();
     if (resp != CPCMND_ACK) {
         return 2; // TODO: make actual error handling
@@ -489,7 +469,6 @@ int checkpoint(void)
     // NB: restore point
     if (checkpoint_restored() == 0) {
         /* Normal operation */
-        nvm_wait_process();
         nvm_write_byte(CPCMND_CONTINUE);
     } else {
         printf("*******RESTORED*******\r\n");

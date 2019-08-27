@@ -5,6 +5,7 @@
 #include <msp430.h>
 
 void mpy_comm_init(void);
+void mpy_comm_start(void);
 int mpy_write(char *src, size_t size);
 int mpy_read(char *dst, size_t size);
 
@@ -41,8 +42,15 @@ static inline int mpy_cs(void)
     return 0;
 }
 
+static inline void mpy_wait_cs(void)
+{
+    while (mpy_cs() != 0);
+}
+
 static inline char mpy_write_byte(char data)
 {
+    mpy_wait_cs();
+
     //printf("Write byte send data: 0x%x\r\n", data);
     UCB1TXBUF = data;
     mpy_wr_high();
@@ -65,6 +73,8 @@ static inline char mpy_write_byte(char data)
 
 static inline char mpy_read_byte(void)
 {
+    mpy_wait_cs();
+
     mpy_wr_high();
     while(!(UCB1IFG & UCRXIFG));
     mpy_wr_low();

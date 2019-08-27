@@ -17,9 +17,6 @@ int main(void)
     clockConfig();
     ledConfig();
 
-    P5OUT &= ~BIT3;
-    P5DIR |= BIT3;
-
     /* SPI communication with Metro */
     mpy_comm_init();
 
@@ -29,13 +26,17 @@ int main(void)
     // Init checkpoint
     checkpoint_update();
 
+    printf("Waiting for sync\r\n");
     process_reboot_sync();
+    mpy_wr_high();
+    mpy_wr_low();
+    mpy_wr_high();
+    mpy_wr_low();
 
+    printf("Start communication\r\n");
+    mpy_comm_start();
     while (1) {
-        //mpy_read_dma_blocking(read_buffer, 1024);
         process_dispatch();
-        //char byte = mpy_read_byte();
-        //printf("Byte: %c [0x%x]\r\n", byte, byte);
     }
 }
 #else
