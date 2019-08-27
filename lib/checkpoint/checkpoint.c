@@ -163,27 +163,14 @@ char nvm_read_byte(void) {
     return dst_byte;
 }
 
-#if 0
-#define nvm_wait_process do {mp_hal_delay_ms(5);} while (0)
-
-#define NVM_TRY_CNT 100
-char nvm_wait_ack(void)
-{
-    char b;
-
-    for (int i=0; i<NVM_TRY_CNT; i++) {
-        b = nvm_read_byte();
-        if (b == CPCMND_ACK) {
-            return b;
-        }
-    }
-    return b;
-}
-#endif
-
 void nvm_wait_process(void) {
     // Wait untill the NVM signals it's ready
-    while (common_hal_digitalio_digitalinout_get_value(&wr_pin_nv) == false);
+    while (common_hal_digitalio_digitalinout_get_value(&wr_pin_nv) == false) {
+       //usb_background();
+#ifdef MICROPY_VM_HOOK_LOOP
+        MICROPY_VM_HOOK_LOOP
+#endif
+    }
 }
 
 
@@ -267,7 +254,7 @@ static void checkpoint_memory_region(char *start, size_t size) {
     addr_start = (segment_size_t)start;
     addr_end = (segment_size_t)end;
 
-    printf("%lx:%lx\r\n", addr_start, addr_end);
+    //printf("%lx:%lx\r\n", addr_start, addr_end);
 
     nvm_wait_process();
     nvm_write_byte(CPCMND_SEGMENT);
@@ -377,6 +364,7 @@ static int pyrestore_process(void) {
     nvm_wait_process();
     nvm_write_byte(CPCMND_REQUEST_RESTORE);
 
+    bool restore_registers_pending = false;
     while (1) {
         nvm_wait_process();
         int c = nvm_read_byte();
@@ -384,6 +372,10 @@ static int pyrestore_process(void) {
 
         switch (c) {
             case CPCMND_CONTINUE:
+                if (restore_registers_pending) {
+                    restore_registers();
+                }
+
                 done = 1;
                 break;
             case CPCMND_REGISTERS:
@@ -396,7 +388,8 @@ static int pyrestore_process(void) {
                 nvm_wait_process();
                 nvm_write_byte(CPCMND_ACK); // send ACK
 
-                restore_registers();
+                //restore_registers();
+                restore_registers_pending = true;
                 break;
             case CPCMND_SEGMENT:
                 nvm_wait_process();
@@ -419,7 +412,10 @@ static int pyrestore_process(void) {
 
                 break;
             default:
-                // Garbage or unknown command
+                /* Garbage or unknown command */
+                // Try again to ask for a restore
+                nvm_wait_process();
+                nvm_write_byte(CPCMND_REQUEST_RESTORE);
                 break;
         }
 
@@ -472,7 +468,6 @@ void pyrestore(void) {
  *  // END CP
  *  M -> P: UNIQUE_CP_END_KEY       // Continue
  */
-char test_data[] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20};
 int checkpoint(void)
 {
     char resp;
@@ -485,7 +480,6 @@ int checkpoint(void)
         return 2; // TODO: make actual error handling
     }
 
-    //checkpoint_memory_region(test_data, sizeof(test_data));
     checkpoint_memory();
 
 #if CP_REGISTERS
@@ -497,6 +491,8 @@ int checkpoint(void)
         /* Normal operation */
         nvm_wait_process();
         nvm_write_byte(CPCMND_CONTINUE);
+    } else {
+        printf("*******RESTORED*******\r\n");
     }
 
     return checkpoint_restored();
