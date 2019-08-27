@@ -342,17 +342,6 @@ __attribute__((noinline))
 static int pyrestore_process(void) {
     segment_size_t addr_start, addr_end, size;
 
-#if 0
-    // Signal a restore (keep trying)
-    while (1) {
-        nvm_write_byte(CPCMND_REQUEST_RESTORE);
-        mp_hal_delay_ms(10); // wait a bit for a response
-        resp = nvm_read_byte();
-        mp_hal_delay_ms(500);
-    }
-#endif
-
-    // TODO: make retry
     nvm_write_byte(CPCMND_REQUEST_RESTORE);
 
     bool restore_registers_pending = false;

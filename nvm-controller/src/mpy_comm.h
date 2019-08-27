@@ -51,7 +51,6 @@ static inline char mpy_write_byte(char data)
 {
     mpy_wait_cs();
 
-    //printf("Write byte send data: 0x%x\r\n", data);
     UCB1TXBUF = data;
     mpy_wr_high();
     while(!(UCB1IFG & UCTXIFG));
@@ -65,8 +64,6 @@ static inline char mpy_write_byte(char data)
     UCB1IFG &= ~UCRXIFG;
 
     UCB1TXBUF = 0;
-
-    //printf("Write byte return data: 0x%x\r\n", data);
 
     return data;
 }
@@ -83,8 +80,6 @@ static inline char mpy_read_byte(void)
 
     // Alsoc clear the write IF (discard)
     UCB1IFG &= ~UCTXIFG;
-
-    //printf("Read byte return data: 0x%x\r\n", data);
 
     return data;
 }
