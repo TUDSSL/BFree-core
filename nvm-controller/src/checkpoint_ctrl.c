@@ -126,6 +126,14 @@ void process_checkpoint_segment(void)
     // TODO: add checkpoint management
     mpy_read_dma_blocking(segment->data, size);
 
+#if 0
+    DBG_PRINT("Segment data: \r\n");
+    for (int i=0; i<size; i++) {
+        DBG_PRINT("%x, ", segment->data[i]);
+    }
+    DBG_PRINT("\r\n");
+#endif
+
     /* Send an ACK */
     mpy_write_byte(CPCMND_ACK);
 }
