@@ -9,7 +9,7 @@ LOG_FILE='/tmp/gdb.log'
 MEM_DUMP_BASENAME = '_memory_dump_'
 
 breakpoints = [
-        'checkpoint.c:383', # after checkpoint (restore point)
+        'gdb_break_me', # after checkpoint (restore point)
         'HardFault_Handler',
         ]
 
@@ -50,6 +50,12 @@ def set_breakpoints():
             print('Error inserting breakpoint ' + bp)
     print('\nDone setting breakpoints')
 
+def get_sp():
+    sp_str = gdb.execute('print $sp', to_string=True)
+    sp = int(re.search('.*(0x.*)$', sp_str)[1], 16)
+    #print('current SP: ' + hex(sp))
+    return sp;
+
 def breakpoint_handler(event):
     if not isinstance(event, gdb.BreakpointEvent):
         return
@@ -64,8 +70,7 @@ def breakpoint_handler(event):
             if is_restore == 0:
                 # Get the current stack pointer to dump the stack
                 # Update it so the restore uses the same one
-                sp_str = gdb.execute('print $sp', to_string=True)
-                sp = int(re.search('.*(0x.*)$', sp_str)[1], 16)
+                sp = get_sp()
                 print('current SP: ' + hex(sp))
                 try:
                     # The stack pointer is the low address (it grows down)
@@ -74,8 +79,11 @@ def breakpoint_handler(event):
                     pass
 
                 dump_memory('after-cp')
+                print('Registers array:')
+                gdb.execute('p /x registers')
             else:
                 dump_memory('after-restore')
+                print('current SP: ' + hex(get_sp()))
 
                 # print the memdiff
                 for memname in memory_dump_ranges:
@@ -88,6 +96,32 @@ def breakpoint_handler(event):
                             sym_cmd = 'info symbol ' + hex(diff_addr)
                             #print('Sumbol command: ' + sym_cmd)
                             gdb.execute(sym_cmd)
+
+        elif location == breakpoints[1]:
+            gdb.execute("bt")
+            dump_memory('after-hardfault')
+            sp = get_sp()
+            pc_hardfault = sp + 6*4;
+
+            print('current SP: ' + hex(sp))
+            print('SP + 6*32: ' + hex(pc_hardfault))
+            pc_hardfault_str = gdb.execute('x ' + hex(pc_hardfault), to_string=True)
+            print('Hardfault Cause PC: ' + pc_hardfault_str)
+            gdb.execute("info reg")
+            print('Registers array:')
+            gdb.execute('p /x registers')
+
+            # print the memdiff
+            for memname in memory_dump_ranges:
+                print('memdiff ' + memname)
+                diff = memdiff.main(build_bin_filename('after-cp', memname), \
+                        build_bin_filename('after-hardfault', memname), \
+                        memory_dump_ranges[memname][0])
+                if diff is not None:
+                    for diff_addr in diff:
+                        sym_cmd = 'info symbol ' + hex(diff_addr)
+                        #print('Sumbol command: ' + sym_cmd)
+                        gdb.execute(sym_cmd)
         else:
             gdb.execute("bt")
 

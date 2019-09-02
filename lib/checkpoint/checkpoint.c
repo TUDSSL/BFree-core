@@ -48,8 +48,19 @@
 #define CP_BSS          (1)
 #define CP_GC           (0)
 
+#define GDB_LOG_CP      (1)
+
 #if CP_GC
 #include "py/runtime.h"
+#endif
+
+/*
+ * Used by GDB as watchpoints
+ */
+#if GDB_LOG_CP
+volatile int _gdb_break_me_cnt = 0;
+__attribute__((noinline))
+void gdb_break_me(void) {++_gdb_break_me_cnt;}
 #endif
 
 /*
@@ -116,7 +127,7 @@ void nvm_wait_process(void) {
     // Wait untill the NVM signals it's ready
     while (common_hal_digitalio_digitalinout_get_value(&wr_pin_nv) == false) {
 #ifdef MICROPY_VM_HOOK_LOOP
-        MICROPY_VM_HOOK_LOOP
+        //MICROPY_VM_HOOK_LOOP
 #endif
     }
 }
@@ -228,6 +239,7 @@ static inline void checkpoint_registers(void) {
         // Read ACK
         resp = nvm_read_byte();
         if (resp != CPCMND_ACK) {
+            while(1);
             return;
         }
     }
@@ -258,6 +270,7 @@ static void checkpoint_memory_region(char *start, size_t size) {
 
     resp = nvm_read_byte();
     if (resp != CPCMND_ACK) {
+        while(1);
         return;
     }
 
@@ -279,6 +292,7 @@ static void checkpoint_memory_region(char *start, size_t size) {
     // ACK
     resp = nvm_read_byte();
     if (resp != CPCMND_ACK) {
+        while(1);
         return;
     }
 }
@@ -352,6 +366,10 @@ static int pyrestore_process(void) {
         switch (c) {
             case CPCMND_CONTINUE:
                 if (restore_registers_pending) {
+#if GDB_LOG_CP
+                    checkpoint_svc_restore = 1;
+                    gdb_break_me();
+#endif
                     restore_registers();
                 }
 
@@ -456,12 +474,14 @@ int checkpoint(void)
     checkpoint_registers();
 #endif
 
+#if GDB_LOG_CP
+    gdb_break_me();
+#endif
+
     // NB: restore point
     if (checkpoint_restored() == 0) {
         /* Normal operation */
         nvm_write_byte(CPCMND_CONTINUE);
-    } else {
-        printf("*******RESTORED*******\r\n");
     }
 
     return checkpoint_restored();
