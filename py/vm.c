@@ -37,8 +37,6 @@
 
 #include "lib/checkpoint/checkpoint.h"
 #define CHECKPOINT_START_BC_LOOP
-extern volatile int break_me_checkpoint;
-extern volatile int break_me_restore;
 
 #if 0
 #define TRACE(ip) printf("sp=%d ", (int)(sp - &code_state->state[0] + 1)); mp_bytecode_print2(ip, 1, code_state->fun_bc->const_table);
@@ -203,10 +201,7 @@ outer_dispatch_loop:
 #ifdef CHECKPOINT_START_BC_LOOP
                 if (checkpoint() == 1) {
                     // Restore
-                    break_me_restore = 1;
                     printf("*******RESTORED*******\r\n");
-                } else {
-                    break_me_checkpoint = 1;
                 }
 #endif
 
