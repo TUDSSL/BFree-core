@@ -15,7 +15,7 @@ MEMORY
 _estack = ORIGIN(RAM) + LENGTH(RAM) - 8;
 _bootloader_dbl_tap = ORIGIN(RAM) + LENGTH(RAM) - 4;
 
-_esafestack = ORIGIN(RAM) + LENGTH(RAM) + 1024;
+_esafestack = _estack + 1024;
 
 /* define output sections */
 SECTIONS
