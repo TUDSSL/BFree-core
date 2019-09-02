@@ -7,7 +7,7 @@
 *(*.low_address)
 *(*.mp_interrupt_char)
 *(*.mp_state_ctx)
-*(*.nesting_count) /* -> ISR reference count? Maybe */
+/* *(*.nesting_count) /* -> ISR reference count? Maybe */
 *(*.pulse_buffer)
 *(*.pulse_index)
 *(*.pulse_length)
