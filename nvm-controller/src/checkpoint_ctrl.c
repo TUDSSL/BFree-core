@@ -1,12 +1,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "debug.h"
 #include "nvm.h"
 #include "mpy_comm.h"
 #include "checkpoint_ctrl.h"
-
-//#define DBG_PRINT(...)
-#define DBG_PRINT printf
 
 process_state_t ProcessState;
 extern volatile uint16_t checkpoint_active_base_idx;

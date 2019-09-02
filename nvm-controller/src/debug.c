@@ -1,6 +1,6 @@
 #include "debug.h"
 
-
+#if !(DEBUG_USE_CIO)
 void uartConfig(void) {
     // Pins, 2.1/UCA0RXD (to MCU), 2.0/UCA0TXD (from MCU)
     P2REN = 0;                                              // Disable pull up/down down registers
@@ -33,3 +33,4 @@ int io_puts_no_newline(const char *str) {
   }
   return 0;
 }
+#endif /* !DEBUG_USE_CIO */

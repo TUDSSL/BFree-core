@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-//#include "debug.h"
+#include "debug.h"
 #include "ports.h"
 #include "mpy_comm.h"
 
@@ -25,7 +25,7 @@ int main(void)
     //printf("Waiting for sync\r\n");
     //process_reboot_sync();
 
-    printf("Start communication\r\n");
+    DBG_PRINT("Start communication\r\n");
     mpy_comm_start();
     while (1) {
         process_dispatch();
