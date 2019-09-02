@@ -399,6 +399,7 @@ static int pyrestore_process(void) {
 void checkpoint_init(void)
 {
     nvm_comm_init();
+    NVIC_SetPriority(SVCall_IRQn, 0xff); /* Lowest possible priority */
 }
 
 /*
