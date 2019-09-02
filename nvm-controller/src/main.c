@@ -22,12 +22,8 @@ int main(void)
     // Init checkpoint
     checkpoint_update();
 
-    printf("Waiting for sync\r\n");
-    process_reboot_sync();
-    mpy_wr_high();
-    mpy_wr_low();
-    mpy_wr_high();
-    mpy_wr_low();
+    //printf("Waiting for sync\r\n");
+    //process_reboot_sync();
 
     printf("Start communication\r\n");
     mpy_comm_start();

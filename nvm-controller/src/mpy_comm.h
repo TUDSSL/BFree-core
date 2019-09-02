@@ -24,6 +24,10 @@ int mpy_read_dma_blocking(char *dst, size_t size);
 
 #define WR_PIN BIT2
 
+/* We don't use the RD pin defined on the PCB, so repurpose it as a reset pin */
+#define RD_PIN BIT3
+#define RST_PIN RD_PIN
+
 static inline void mpy_wr_high(void)
 {
     P1OUT |= WR_PIN;

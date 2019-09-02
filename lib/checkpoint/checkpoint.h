@@ -7,6 +7,7 @@ typedef uint8_t registers_size_t;
 void checkpoint_init(void);
 void pyrestore(void);
 int checkpoint(void);
+void nvm_reset(void);
 
 // For debug
 void nvm_write(char *src, size_t len);

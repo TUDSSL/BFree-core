@@ -122,12 +122,13 @@ busio_spi_obj_t nv_spi_bus;
 digitalio_digitalinout_obj_t cs_pin_nv;
 
 digitalio_digitalinout_obj_t wr_pin_nv;
+digitalio_digitalinout_obj_t rst_pin_nv;
 
 void nvm_wait_process(void) {
     // Wait untill the NVM signals it's ready
     while (common_hal_digitalio_digitalinout_get_value(&wr_pin_nv) == false) {
 #ifdef MICROPY_VM_HOOK_LOOP
-        //MICROPY_VM_HOOK_LOOP
+        MICROPY_VM_HOOK_LOOP
 #endif
     }
 }
@@ -152,6 +153,23 @@ void nvm_comm_init(void) {
     wr_pin_nv.base.type = &digitalio_digitalinout_type;
     common_hal_digitalio_digitalinout_construct(&wr_pin_nv, &pin_PA07);
     common_hal_digitalio_digitalinout_switch_to_input(&wr_pin_nv, PULL_DOWN);
+
+    // Init the reset pin for the NV memory controller
+    rst_pin_nv.base.type = &digitalio_digitalinout_type;
+    common_hal_digitalio_digitalinout_construct(&rst_pin_nv, &pin_PA21);
+    common_hal_digitalio_digitalinout_switch_to_output(&rst_pin_nv, true, DRIVE_MODE_PUSH_PULL);
+    common_hal_digitalio_digitalinout_never_reset(&rst_pin_nv);
+    common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, false);
+}
+
+void nvm_reset(void) {
+    common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, true);
+    asm volatile("nop");
+    asm volatile("nop");
+    asm volatile("nop");
+    asm volatile("nop");
+    asm volatile("nop");
+    common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, false);
 }
 
 void nvm_write(char *src, size_t len) {
@@ -417,6 +435,7 @@ static int pyrestore_process(void) {
 void checkpoint_init(void)
 {
     nvm_comm_init();
+    nvm_reset();
     NVIC_SetPriority(SVCall_IRQn, 0xff); /* Lowest possible priority */
 }
 
