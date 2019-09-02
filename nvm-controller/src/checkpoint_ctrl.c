@@ -9,6 +9,7 @@
 #define DBG_PRINT printf
 
 process_state_t ProcessState;
+extern volatile uint16_t checkpoint_active_base_idx;
 
 void process_error(process_state_t state)
 {
@@ -123,7 +124,6 @@ void process_checkpoint_segment(void)
     mpy_write((char *)&size, sizeof(size)); // send size as ACK
 
     /* Now the segment data will be send */
-    // TODO: add checkpoint management
     mpy_read_dma_blocking(segment->data, size);
 
 #if 0

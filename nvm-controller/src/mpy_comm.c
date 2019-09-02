@@ -62,7 +62,7 @@ int mpy_write_dma(char *src, size_t size)
 {
     mpy_wait_cs();
 
-    DMACTL1 |= DMA3TSEL__UCB1TXIFG;  // UCB1TXIFG if DMA Channel 3
+    DMACTL1 = DMA3TSEL__UCB1TXIFG;  // UCB1TXIFG if DMA Channel 3
 
     __data16_write_addr((intptr_t) &DMA3SA,(intptr_t) src);
     __data16_write_addr((intptr_t) &DMA3DA,(intptr_t) &UCB1TXBUF);
@@ -102,7 +102,7 @@ int mpy_read_dma(char *dst, size_t size)
 {
     mpy_wait_cs();
 
-    DMACTL1 |= DMA3TSEL__UCB1RXIFG;  // UCB1RXIFG if DMA Channel 3
+    DMACTL1 = DMA3TSEL__UCB1RXIFG;  // UCB1RXIFG if DMA Channel 3
 
     __data16_write_addr((intptr_t) &DMA3SA,(intptr_t) &UCB1RXBUF);
     __data16_write_addr((intptr_t) &DMA3DA,(intptr_t) dst);
