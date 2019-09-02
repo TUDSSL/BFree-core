@@ -388,58 +388,6 @@ int run_repl(void) {
     return exit_code;
 }
 
-#if 0
-/* Just putting this all here in stead of changing compile process, HACKY SORRY / NOT SORRY-- Josiah */
-static uint8_t example_SPI_M_SERCOM1[13] = "Hello MSP430!"; //{1,2,3,4,5,6,7,8,9,10,11,12};//
-struct spi_m_sync_descriptor SPI_M_SERCOM1;
-busio_spi_obj_t nv_spi_bus;
-digitalio_digitalinout_obj_t cs_pin_nv;
-#define NV_CMD_READ_DATA 0x1E
-#define NV_CMD_WRITE_DATA 0x1A
-
-void init_nv_ckpt_interface(void) {
-     // Init the CS pin for NV memory controller
-    cs_pin_nv.base.type = &digitalio_digitalinout_type;
-    common_hal_digitalio_digitalinout_construct(&cs_pin_nv, &pin_PA18);
-
-    // NV Set CS high (disabled).
-    common_hal_digitalio_digitalinout_switch_to_output(&cs_pin_nv, true, DRIVE_MODE_PUSH_PULL);
-    common_hal_digitalio_digitalinout_never_reset(&cs_pin_nv);
-    // SPI for NV comms
-    nv_spi_bus.base.type = &busio_spi_type;
-    nv_spi_bus.spi_desc = SPI_M_SERCOM1;
-    common_hal_busio_spi_construct(&nv_spi_bus, &pin_PA17, &pin_PA16, &pin_PA19);
-    //common_hal_busio_spi_configure(&nv_spi_bus, 1000000, 0, 0, 8);
-}
-
-void write_bytes_to_nv(uint8_t * arr, uint8_t len, uint16_t address) {
-    uint8_t request[4] = {NV_CMD_WRITE_DATA, (address >> 8) & 0xff, address & 0xff, len};
-    while (!common_hal_busio_spi_try_lock(&nv_spi_bus)) {}
-    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
-    bool status = common_hal_busio_spi_write(&nv_spi_bus, request, 4);
-    if(status) {
-        common_hal_busio_spi_write(&nv_spi_bus, arr, len);
-    }
-    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, true);
-    common_hal_busio_spi_unlock(&nv_spi_bus);
-}
-
-void read_bytes_from_nv(uint16_t address, uint8_t len, uint8_t * target_arr) {
-    uint8_t request[4] = {NV_CMD_WRITE_DATA, (address >> 8) & 0xff, address & 0xff, len};
-    while (!common_hal_busio_spi_try_lock(&nv_spi_bus)) {}
-    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
-    // Send the address and length to read and then read the data
-    bool status = common_hal_busio_spi_write(&nv_spi_bus, request, 4);
-    if(status) {
-        common_hal_busio_spi_read(&nv_spi_bus, target_arr, len, 0xff);
-    }
-    common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, true);
-    common_hal_busio_spi_unlock(&nv_spi_bus);
-}
-#endif
-
-/* End NV additions */
-
 int __attribute__((used)) main(void) {
     memory_init();
 
