@@ -46,7 +46,7 @@
 #define CP_STACK        (1)
 #define CP_DATA         (1)
 #define CP_BSS          (1)
-#define CP_GC           (0)
+#define CP_GC           (1)
 
 #define GDB_LOG_CP      (1)
 
