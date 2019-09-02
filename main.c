@@ -440,12 +440,6 @@ void read_bytes_from_nv(uint16_t address, uint8_t len, uint8_t * target_arr) {
 
 /* End NV additions */
 
-volatile int break_me_checkpoint = 0;
-volatile int break_me_restore = 0;
-#include "supervisor/usb.h"
-
-char test_array[1024];
-
 int __attribute__((used)) main(void) {
     memory_init();
 
@@ -490,14 +484,6 @@ int __attribute__((used)) main(void) {
 
     // Restore a checkpoint (if required)
     pyrestore();
-
-    if (checkpoint() == 1) {
-        // Restore
-        break_me_restore = 1;
-        //printf("*******RESTORED*******\r\n");
-    } else {
-        break_me_checkpoint = 1;
-    }
 
     // Boot script is finished, so now go into REPL/main mode.
     int exit_code = PYEXEC_FORCED_EXIT;
