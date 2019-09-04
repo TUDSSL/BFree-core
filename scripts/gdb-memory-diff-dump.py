@@ -19,6 +19,17 @@ memory_dump_ranges = {
         'bss':      [0x20000400, 0x200006c4],
         }
 
+def user_reset():
+    gdb.execute('mon reset')
+    gdb.execute('c')
+
+# Fake a power failure reset
+def pf_reset():
+    # Clear the special "safe_boot" flag, as if power was lost
+    gdb.execute('call port_set_saved_word(0)')
+    # Reset and continue
+    user_reset()
+
 def build_bin_filename(prefix, memname):
     fname = prefix + MEM_DUMP_BASENAME + memname + '.bin'
     return fname

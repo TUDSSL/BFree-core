@@ -275,6 +275,7 @@ uint32_t* safe_word = (uint32_t*) (HMCRAMC0_ADDR + HMCRAMC0_SIZE - 0x2000);
 uint32_t* safe_word = (uint32_t*) (HSRAM_ADDR + HSRAM_SIZE - 0x2000);
 #endif
 
+__attribute__((noinline))
 void port_set_saved_word(uint32_t value) {
     *safe_word = value;
 }
