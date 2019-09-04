@@ -46,6 +46,9 @@ safe_mode_t wait_for_safe_mode_reset(void) {
     if ((reset_state & SAFE_MODE_DATA_GUARD_MASK) == SAFE_MODE_DATA_GUARD) {
         safe_mode = (reset_state & ~SAFE_MODE_DATA_GUARD_MASK) >> 8;
     }
+    if (safe_mode == USER_RESET) {
+        return safe_mode;
+    }
     if (safe_mode != NO_SAFE_MODE) {
         port_set_saved_word(SAFE_MODE_DATA_GUARD);
         current_safe_mode = safe_mode;
@@ -72,7 +75,7 @@ safe_mode_t wait_for_safe_mode_reset(void) {
     common_hal_digitalio_digitalinout_deinit(&status_led);
     #endif
     clear_temp_status();
-    port_set_saved_word(SAFE_MODE_DATA_GUARD);
+    port_set_saved_word(SAFE_MODE_DATA_GUARD | (USER_RESET << 8));
     return NO_SAFE_MODE;
 }
 

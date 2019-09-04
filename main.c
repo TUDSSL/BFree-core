@@ -388,6 +388,7 @@ int run_repl(void) {
     return exit_code;
 }
 
+#define CLEAR_NVM_USER_RESET (1) // TODO: Move to config
 int __attribute__((used)) main(void) {
     memory_init();
 
@@ -401,6 +402,13 @@ int __attribute__((used)) main(void) {
     // Wait briefly to give a reset window where we'll enter safe mode after the reset.
     if (safe_mode == NO_SAFE_MODE) {
         safe_mode = wait_for_safe_mode_reset();
+    }
+
+    // Clear nvm when the connection is made
+    bool clear_nvm = false;
+    if (safe_mode == USER_RESET) {
+        clear_nvm = true;
+        safe_mode = NO_SAFE_MODE;
     }
 
     stack_init();
@@ -429,6 +437,12 @@ int __attribute__((used)) main(void) {
 
     // Initialize the checkpoint controller
     checkpoint_init();
+
+#if CLEAR_NVM_USER_RESET
+    if (clear_nvm) {
+        checkpoint_delete();
+    }
+#endif
 
     // Restore a checkpoint (if required)
     pyrestore();
