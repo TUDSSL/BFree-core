@@ -72,6 +72,7 @@ void gdb_break_me(void) {++_gdb_break_me_cnt;}
 #define CPCMND_REGISTERS            'r'
 #define CPCMND_ACK                  'a'
 #define CPCMND_CONTINUE             'c'
+#define CPCMND_DEL                  'd'
 
 /* .data section */
 extern uint32_t _srelocate;
@@ -437,6 +438,21 @@ void checkpoint_init(void)
     nvm_comm_init();
     nvm_reset();
     NVIC_SetPriority(SVCall_IRQn, 0xff); /* Lowest possible priority */
+}
+
+/*
+ * Delete the currect checkpoint used for restore in NVM
+ * Can be used to do a clean boot (restart the program)
+ */
+void checkpoint_delete(void)
+{
+    nvm_write_byte(CPCMND_DEL);
+    char resp = nvm_read_byte();
+    if (resp != CPCMND_ACK) {
+        // Deletion failed
+        // TODO: handle
+        return;
+    }
 }
 
 /*

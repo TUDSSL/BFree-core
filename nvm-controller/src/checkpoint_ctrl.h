@@ -14,6 +14,7 @@
 #define CPCMND_REGISTERS            'r'
 #define CPCMND_ACK                  'a'
 #define CPCMND_CONTINUE             'c'
+#define CPCMND_DEL                  'd'
 
 typedef enum process_state {
     PS_COMMAND,
@@ -40,5 +41,7 @@ void process_checkpoint_registers(void);
 void process_restore_command(void);
 void process_restore_segment(segment_t *segment);
 void process_restore_registers(segment_t *segment);
+
+void process_delete_checkpoint(void);
 
 #endif /* CHECKPOINT_CTRL_H__ */

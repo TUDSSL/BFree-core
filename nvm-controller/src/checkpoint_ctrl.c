@@ -66,6 +66,11 @@ void process_command_byte(uint8_t byte)
             //mpy_write_byte(CPCMND_ACK);
             ProcessState = PS_PRESTORE;
             break;
+        case CPCMND_DEL:
+            DBG_PRINT("Command: DEL_CHECKPOINT\r\n");
+            process_delete_checkpoint();
+            mpy_write_byte(CPCMND_ACK);
+            break;
         default:
             // Unknown command
             DBG_PRINT("Command: ERROR\r\n");
@@ -257,5 +262,12 @@ void process_restore_registers(segment_t *segment)
         // Error
         return;
     }
+}
+
+void process_delete_checkpoint(void)
+{
+    checkpoint_table_clear_restore();
+    // TODO: Do we also want to clear the current checkpoint?
+    // Currently it does not as I don't see why that would be a good feature
 }
 

@@ -5,6 +5,7 @@ typedef uint32_t segment_size_t;
 typedef uint8_t registers_size_t;
 
 void checkpoint_init(void);
+void checkpoint_delete(void);
 void pyrestore(void);
 int checkpoint(void);
 void nvm_reset(void);

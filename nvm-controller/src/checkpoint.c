@@ -56,10 +56,19 @@ void checkpoint_update(void)
     checkpoint_working_end_allocated = (char *)checkpoint_working_base;
 
     // Clear the current table
-    memset(*checkpoint_working_table, 0, (sizeof(segment_t *) * CHECKPOINT_MAX_SEGMENTS));
+    checkpoint_table_clear_working();
     checkpoint_table_idx = 0;
 }
 
+void checkpoint_table_clear_working(void)
+{
+    memset(*checkpoint_working_table, 0, (sizeof(segment_t *) * CHECKPOINT_MAX_SEGMENTS));
+}
+
+void checkpoint_table_clear_restore(void)
+{
+    memset(*checkpoint_restore_table, 0, (sizeof(segment_t *) * CHECKPOINT_MAX_SEGMENTS));
+}
 
 void checkpoint_table_add(segment_t *segment)
 {
