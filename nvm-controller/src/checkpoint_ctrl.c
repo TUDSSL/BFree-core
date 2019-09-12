@@ -109,6 +109,7 @@ void process_checkpoint_segment(void)
 {
     segment_size_t addr_start, addr_end, size;
 
+
     mpy_write_byte(CPCMND_ACK);
     mpy_read((char *)&addr_start, sizeof(segment_size_t));
     mpy_read((char *)&addr_end, sizeof(segment_size_t));
@@ -123,6 +124,8 @@ void process_checkpoint_segment(void)
     segment->meta.size = size;
     segment->meta.addr_start = addr_start;
     segment->meta.addr_end = addr_end;
+
+    DBG_PRINT("CP Segment addr: %p\r\n", segment->data);
 
     mpy_write((char *)&size, sizeof(size)); // send size as ACK
 
@@ -171,6 +174,7 @@ void process_restore_command(void)
     DBG_PRINT("Process Restore Command\r\n");
 
     while (seg_iter.segment != NULL) {
+        DBG_PRINT("REST Segment addr: %p\r\n", seg_iter.segment->data);
         if (seg_iter.segment->meta.type == SEGMENT_TYPE_MEMORY) {
             DBG_PRINT("REST Command: Segment\r\n");
             process_restore_segment(seg_iter.segment);
