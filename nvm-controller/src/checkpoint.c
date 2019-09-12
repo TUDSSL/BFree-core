@@ -11,7 +11,7 @@ NVM volatile uint16_t checkpoint_active_base_idx = 0; // atomic
  * Array of segment pointers
  * TODO: The segments can be made a linked list
  */
-#define CHECKPOINT_MAX_SEGMENTS 10
+#define CHECKPOINT_MAX_SEGMENTS 16
 NVM segment_t *checkpoint_table_a[CHECKPOINT_MAX_SEGMENTS];
 NVM segment_t *checkpoint_table_b[CHECKPOINT_MAX_SEGMENTS];
 
