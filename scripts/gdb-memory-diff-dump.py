@@ -17,6 +17,7 @@ memory_dump_ranges = {
         'stack':    [0x20007b90, 0x20007bf8],
         'data':     [0x20000000, 0x20000010],
         'bss':      [0x20000400, 0x200006c4],
+        'gc':       [0x20001c70, 0x20006730],
         }
 
 def user_reset():
@@ -61,6 +62,48 @@ def set_breakpoints():
             print('Error inserting breakpoint ' + bp)
     print('\nDone setting breakpoints')
 
+def setup_static_memory_regions():
+    print('Setting up static memory regions (.data, .bss)')
+
+    # Data section
+    data_start_str = gdb.execute('print &_srelocate', to_string=True)
+    data_end_str = gdb.execute('print &_erelocate_cp', to_string=True)
+    data_start = int(re.search('.*(0x[^\s]*).*$', data_start_str)[1], 16)
+    data_end = int(re.search('.*(0x[^\s]*).*$', data_end_str)[1], 16)
+
+    # BSS section
+    bss_start_str = gdb.execute('print &_sbss', to_string=True)
+    bss_end_str = gdb.execute('print &_ebss_cp', to_string=True)
+    bss_start = int(re.search('.*(0x[^\s]*).*$', bss_start_str)[1], 16)
+    bss_end = int(re.search('.*(0x[^\s]*).*$', bss_end_str)[1], 16)
+
+    # Stack end
+    stack_end_str = gdb.execute('print &_estack', to_string=True)
+    stack_end = int(re.search('.*(0x[^\s]*).*$', stack_end_str)[1], 16)
+
+    memory_dump_ranges['data'][0] = data_start
+    memory_dump_ranges['data'][1] = data_end
+    memory_dump_ranges['bss'][0] = bss_start
+    memory_dump_ranges['bss'][1] = bss_end
+    memory_dump_ranges['stack'][1] = stack_end
+
+    print('.data start: ' + hex(data_start) + ' end: ' + hex(data_end))
+    print('.bss start: ' + hex(bss_start) + ' end: ' + hex(bss_end))
+
+def setup_dynamic_memory_regions():
+    # Stack
+    memory_dump_ranges['stack'][0] = get_sp()
+
+    # Garbage Collection
+    gc_start_str = gdb.execute('print mp_state_ctx.mem.gc_pool_start', to_string=True)
+    gc_end_str = gdb.execute('print mp_state_ctx.mem.gc_pool_end', to_string=True)
+    gc_start = int(re.search('.*(0x[^\s]*).*$', gc_start_str)[1], 16)
+    gc_end = int(re.search('.*(0x[^\s]*).*$', gc_end_str)[1], 16)
+
+    print('stack start: ' + hex(memory_dump_ranges['stack'][0]) \
+            + ' end: ' + hex(memory_dump_ranges['stack'][1]))
+    print('GC pool start: ' + hex(gc_start) + ' end: ' + hex(gc_end))
+
 def get_sp():
     sp_str = gdb.execute('print $sp', to_string=True)
     sp = int(re.search('.*(0x.*)$', sp_str)[1], 16)
@@ -81,20 +124,19 @@ def breakpoint_handler(event):
             if is_restore == 0:
                 # Get the current stack pointer to dump the stack
                 # Update it so the restore uses the same one
-                sp = get_sp()
-                print('current SP: ' + hex(sp))
-                try:
-                    # The stack pointer is the low address (it grows down)
-                    memory_dump_ranges['stack'][0] = sp
-                except KeyError:
-                    pass
+                setup_dynamic_memory_regions()
+                print('current SP: ' + hex(get_sp()))
 
                 dump_memory('after-cp')
                 print('Registers array:')
                 gdb.execute('p /x registers')
+                print('Allocation table:')
+                gdb.execute('p allocations')
+                gdb.execute('c')
             else:
                 dump_memory('after-restore')
                 print('current SP: ' + hex(get_sp()))
+                #gdb.execute('mtb')
 
                 # print the memdiff
                 for memname in memory_dump_ranges:
@@ -107,6 +149,11 @@ def breakpoint_handler(event):
                             sym_cmd = 'info symbol ' + hex(diff_addr)
                             #print('Sumbol command: ' + sym_cmd)
                             gdb.execute(sym_cmd)
+                print('Registers array:')
+                gdb.execute('p /x registers')
+                print('Allocation table:')
+                gdb.execute('p allocations')
+                gdb.execute('c')
 
         elif location == breakpoints[1]:
             gdb.execute("bt")
@@ -121,6 +168,7 @@ def breakpoint_handler(event):
             gdb.execute("info reg")
             print('Registers array:')
             gdb.execute('p /x registers')
+            gdb.execute('mtb')
 
             # print the memdiff
             for memname in memory_dump_ranges:
@@ -136,7 +184,7 @@ def breakpoint_handler(event):
         else:
             gdb.execute("bt")
 
-        gdb.execute('c')
+        #gdb.execute('c')
 
 def register_breakpoint_handler():
     gdb.events.stop.connect(breakpoint_handler)
@@ -150,5 +198,6 @@ def main():
     setup()
     set_breakpoints()
     register_breakpoint_handler()
+    setup_static_memory_regions()
 
 main()
