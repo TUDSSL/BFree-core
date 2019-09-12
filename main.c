@@ -411,8 +411,6 @@ int __attribute__((used)) main(void) {
         safe_mode = NO_SAFE_MODE;
     }
 
-    stack_init();
-
     // Create a new filesystem only if we're not in a safe mode.
     // A power brownout here could make it appear as if there's
     // no SPI flash filesystem, and we might erase the existing one.
@@ -430,7 +428,7 @@ int __attribute__((used)) main(void) {
     filesystem_set_internal_concurrent_write_protection(true);
     filesystem_set_internal_writable_by_usb(true);
 
-    run_boot_py(safe_mode);
+    //run_boot_py(safe_mode);
 
     // Start serial and HID after giving boot.py a chance to tweak behavior.
     serial_init();
@@ -446,6 +444,8 @@ int __attribute__((used)) main(void) {
 
     // Restore a checkpoint (if required)
     pyrestore();
+
+    stack_init();
 
     // Boot script is finished, so now go into REPL/main mode.
     int exit_code = PYEXEC_FORCED_EXIT;

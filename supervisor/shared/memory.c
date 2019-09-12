@@ -120,3 +120,8 @@ supervisor_allocation* allocate_memory(uint32_t length, bool high) {
 void supervisor_move_memory(void) {
     supervisor_display_move_memory();
 }
+
+uint32_t supervisor_get_allocations(supervisor_allocation **table) {
+    *table = allocations;
+    return CIRCUITPY_SUPERVISOR_ALLOC_COUNT;
+}

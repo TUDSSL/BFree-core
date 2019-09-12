@@ -17,6 +17,10 @@
 *(*.rl)
 *(*.running_background_tasks)
 *(*.stack_alloc)
+*(*.current_stack_size)
 *(*.tc_handler) /* timer stuff TODO: need re-init */
 *(*.ticks_ms)
 *(*.yasmarang_dat)
+*(*.I2C_Restore)
+*(*.low_address)
+*(*.high_address)

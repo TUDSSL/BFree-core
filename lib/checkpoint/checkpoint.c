@@ -9,6 +9,8 @@
 #include "supervisor/usb.h"
 #include "tusb.h"
 
+#include "supervisor/memory.h"
+
 // Intermittent group additions TODO: remove duplicates
 /**
  * Pin mappings.
@@ -43,16 +45,13 @@
 #include "lib/checkpoint/checkpoint.h"
 
 #define CP_REGISTERS    (1)
-#define CP_STACK        (1)
+#define CP_STACK        (0)
 #define CP_DATA         (1)
 #define CP_BSS          (1)
-#define CP_GC           (1)
+#define CP_ALLOCATIONS  (1)
 
 #define GDB_LOG_CP      (1)
 
-#if CP_GC
-#include "py/runtime.h"
-#endif
 
 /*
  * Used by GDB as watchpoints
@@ -148,7 +147,7 @@ void nvm_comm_init(void) {
     nv_spi_bus.base.type = &busio_spi_type;
     nv_spi_bus.spi_desc = SPI_M_SERCOM1;
     common_hal_busio_spi_construct(&nv_spi_bus, &pin_PA17, &pin_PA16, &pin_PA19);
-    common_hal_busio_spi_configure(&nv_spi_bus, 500000, 0, 0, 8);
+    common_hal_busio_spi_configure(&nv_spi_bus, 100000, 0, 0, 8);
 
     // Init the WR pin for NV memory controller
     wr_pin_nv.base.type = &digitalio_digitalinout_type;
@@ -323,34 +322,36 @@ void checkpoint_memory(void) {
     size_t stack_size = (size_t)&_estack - (size_t)sp;
     char *stack_ptr = (char *)sp;
     checkpoint_memory_region(stack_ptr, stack_size);
+    printf(".stack\t[%p-%p,%d]\r\n", sp, &_estack, stack_size);
 #endif
 
 #if CP_DATA
     size_t data_size = (size_t)&_erelocate_cp - (size_t)&_srelocate;
     char *data_ptr = (char *)&_srelocate;
     checkpoint_memory_region(data_ptr, data_size);
+    printf(".data\t[%p-%p,%d]\r\n", &_srelocate, &_erelocate_cp, data_size);
 #endif
 
 #if CP_BSS
     size_t bss_size = (size_t)&_ebss_cp - (size_t)&_sbss;
     char *bss_ptr = (char *)&_sbss;
     checkpoint_memory_region(bss_ptr, bss_size);
+    printf(".bss\t[%p-%p,%d]\r\n", &_sbss, &_ebss_cp, bss_size);
 #endif
 
-#if CP_GC
-    char *gc_ptr_start = (char *)MP_STATE_MEM(gc_pool_start);
-    char *gc_ptr_end = (char *)MP_STATE_MEM(gc_pool_end);
-    if (gc_ptr_start != NULL && gc_ptr_end != NULL) {
-        size_t gc_size = (size_t)gc_ptr_end - (size_t)gc_ptr_start;
-        if (gc_size > 0) {
-            checkpoint_memory_region(gc_ptr_start, gc_size);
+#if CP_ALLOCATIONS
+    supervisor_allocation *allocations;
+    uint32_t *at_ptr;
+    uint32_t table_size = supervisor_get_allocations(&allocations);
+    printf("Allocation table start address (%d): %p\r\n", (int)table_size, allocations);
+    for (uint32_t i=0; i<table_size; i++) {
+        at_ptr = allocations[i].ptr;
+        if (at_ptr != NULL) {
+            printf("Checkpoint allocation index: %d, size: %d\r\n", (int)i, (int)allocations[i].length);
+            checkpoint_memory_region((char *)at_ptr, allocations[i].length);
         }
     }
 #endif
-
-    //printf(".stack\t[%p-%p,%d]\r\n", sp, &_estack, stack_size);
-    //printf(".data\t[%p-%p,%d]\r\n", &_srelocate, &_erelocate, data_size);
-    //printf(".bss\t[%p-%p,%d]\r\n", &_sbss, &_ebss, bss_size);
 }
 
 
@@ -371,6 +372,8 @@ void checkpoint_memory(void) {
  *(10)      GOTO (1)
  *
  */
+extern void common_hal_busio_i2c_restore(void);
+
 __attribute__((noinline))
 static int pyrestore_process(void) {
     segment_size_t addr_start, addr_end, size;
@@ -389,6 +392,7 @@ static int pyrestore_process(void) {
                     checkpoint_svc_restore = 1;
                     gdb_break_me();
 #endif
+                    //common_hal_busio_i2c_restore();
                     restore_registers();
                 }
 

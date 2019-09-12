@@ -59,5 +59,6 @@ static inline uint16_t align32_size(uint16_t size) {
 
 // Called after the heap is freed in case the supervisor wants to save some values.
 void supervisor_move_memory(void);
+uint32_t supervisor_get_allocations(supervisor_allocation **table);
 
 #endif  // MICROPY_INCLUDED_SUPERVISOR_MEMORY_H
