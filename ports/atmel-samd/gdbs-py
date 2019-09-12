@@ -1,3 +1,3 @@
 #!/bin/bash
 export PYTHONPATH="../../scripts/"
-arm-none-eabi-gdb -iex "set auto-load safe-path /" -ex "load" -ex "mon reset" -ex "source ../../scripts/gdb-memory-diff-dump.py" build-metro_m0_express/firmware.elf
+arm-none-eabi-gdb -iex "set auto-load safe-path /" -ex "load" -ex "mon reset" -ex "source ../../scripts/gdb-memory-diff-dump.py" -ex "source ../../scripts/micro-trace-buffer.py" build-metro_m0_express/firmware.elf
