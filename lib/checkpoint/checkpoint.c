@@ -394,7 +394,7 @@ static int pyrestore_process(void) {
 //                    checkpoint_svc_restore = 1;
 //                    gdb_break_me();
 //#endif
-                    //common_hal_busio_i2c_restore();
+                    common_hal_busio_i2c_restore();
                     restore_registers();
                 }
 

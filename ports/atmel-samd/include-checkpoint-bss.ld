@@ -1,7 +1,5 @@
 /* Objects to include in the checkpoint */
 *(*.active_pincfg) /* ? Do we checkpoint this? For PWM */
-*(*.allocations)
-*(*.high_address)
 *(*.last_finished_tick) /* background tasks */
 *(*.last_static_clock) /* clock stuff TODO: check if we need to re-init */
 *(*.low_address)
@@ -22,5 +20,8 @@
 *(*.ticks_ms)
 *(*.yasmarang_dat)
 *(*.I2C_Restore)
+*(*.allocations)
 *(*.low_address)
 *(*.high_address)
+*(*.mp_showbc_code_start)
+*(*.mp_showbc_const_table)
