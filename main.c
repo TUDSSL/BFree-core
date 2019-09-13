@@ -90,7 +90,7 @@ void do_str(const char *src, mp_parse_input_kind_t input_kind) {
 }
 
 void start_mp(supervisor_allocation* heap) {
-    reset_status_led();
+    // reset_status_led();
     autoreload_stop();
 
     background_tasks_reset();
@@ -192,7 +192,7 @@ void cleanup_after_vm(supervisor_allocation* heap) {
     reset_port();
     reset_board_busses();
     reset_board();
-    reset_status_led();
+    // reset_status_led();
 }
 
 bool run_code_py(safe_mode_t safe_mode) {
@@ -221,7 +221,7 @@ bool run_code_py(safe_mode_t safe_mode) {
     if (safe_mode != NO_SAFE_MODE) {
         serial_write_compressed(translate("Running in safe mode! Not running saved code.\n"));
     } else {
-        new_status_color(MAIN_RUNNING);
+        // new_status_color(MAIN_RUNNING);
 
         static const char *supported_filenames[] = STRING_LIST("code.txt", "code.py", "main.py", "main.txt");
         static const char *double_extension_filenames[] = STRING_LIST("code.txt.py", "code.py.txt", "code.txt.txt","code.py.py",
@@ -298,7 +298,7 @@ void __attribute__ ((noinline)) run_boot_py(safe_mode_t safe_mode) {
     if (filesystem_present() && safe_mode == NO_SAFE_MODE && MP_STATE_VM(vfs_mount_table) != NULL) {
         static const char *boot_py_filenames[] = STRING_LIST("settings.txt", "settings.py", "boot.py", "boot.txt");
 
-        new_status_color(BOOT_RUNNING);
+        // new_status_color(BOOT_RUNNING);
 
         #ifdef CIRCUITPY_BOOT_OUTPUT_FILE
         FIL file_pointer;
@@ -377,7 +377,7 @@ int run_repl(void) {
     supervisor_allocation* heap = allocate_remaining_memory();
     start_mp(heap);
     autoreload_suspend();
-    new_status_color(REPL_RUNNING);
+    // new_status_color(REPL_RUNNING);
     if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {
         exit_code = pyexec_raw_repl();
     } else {
@@ -397,7 +397,7 @@ int __attribute__((used)) main(void) {
 
     // Turn on LEDs
     init_status_leds();
-    rgb_led_status_init();
+    // rgb_led_status_init();
 
     // Wait briefly to give a reset window where we'll enter safe mode after the reset.
     if (safe_mode == NO_SAFE_MODE) {
