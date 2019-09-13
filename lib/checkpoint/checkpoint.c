@@ -169,6 +169,7 @@ void nvm_reset(void) {
     asm volatile("nop");
     asm volatile("nop");
     asm volatile("nop");
+    mp_hal_delay_ms(1);
     common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, false);
 }
 
@@ -343,15 +344,16 @@ void checkpoint_memory(void) {
     supervisor_allocation *allocations;
     uint32_t *at_ptr;
     uint32_t table_size = supervisor_get_allocations(&allocations);
-    printf("Allocation table start address (%d): %p\r\n", (int)table_size, allocations);
+    //printf("Allocation table start address (%d): %p\r\n", (int)table_size, allocations);
     for (uint32_t i=0; i<table_size; i++) {
         at_ptr = allocations[i].ptr;
         if (at_ptr != NULL) {
-            printf("Checkpoint allocation index: %d, size: %d\r\n", (int)i, (int)allocations[i].length);
+            printf("Checkpoint allocation index: %d, ptr: 0x%p, size: %d\r\n", (int)i, at_ptr, (int)allocations[i].length);
             checkpoint_memory_region((char *)at_ptr, allocations[i].length);
         }
     }
 #endif
+
 }
 
 
@@ -388,10 +390,10 @@ static int pyrestore_process(void) {
         switch (c) {
             case CPCMND_CONTINUE:
                 if (restore_registers_pending) {
-#if GDB_LOG_CP
-                    checkpoint_svc_restore = 1;
-                    gdb_break_me();
-#endif
+//#if GDB_LOG_CP
+//                    checkpoint_svc_restore = 1;
+//                    gdb_break_me();
+//#endif
                     //common_hal_busio_i2c_restore();
                     restore_registers();
                 }
@@ -417,6 +419,7 @@ static int pyrestore_process(void) {
                 size = addr_end - addr_start;
                 nvm_write((char *)&size, sizeof(segment_size_t)); // send size as ACK
 
+                printf("Restoring segment: start=%p, end=%p, size=%d\r\n", (char *)addr_start, (char *)addr_end, (int)size);
                 // Now the memory segment writeback starts
                 nvm_read((char *)addr_start, size);
 
@@ -496,6 +499,7 @@ void pyrestore(void) {
  *  // END CP
  *  M -> P: UNIQUE_CP_END_KEY       // Continue
  */
+__attribute__((noinline))
 int checkpoint(void)
 {
     char resp;
