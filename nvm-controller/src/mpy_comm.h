@@ -22,11 +22,14 @@ int mpy_read_dma_blocking(char *dst, size_t size);
 #define SPI_SCLK BIT2   // P5.2
 #define SPI_SC   BIT3   // P5.3
 
-#define WR_PIN BIT2
+#define WR_PIN BIT7
 
 /* We don't use the RD pin defined on the PCB, so repurpose it as a reset pin */
-#define RD_PIN BIT3
+#define RD_PIN BIT6
 #define RST_PIN RD_PIN
+
+/* Use pin interrupt to reset the board (not connected to the actual reset pin) */
+#define RST_PIN_ISR (0)
 
 static inline void mpy_wr_high(void)
 {

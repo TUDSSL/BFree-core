@@ -18,12 +18,14 @@ void mpy_comm_init(void)
     P1OUT &= ~WR_PIN;
     P1DIR |= WR_PIN;
 
+#if RST_PIN_ISR
     /* Initialize the Reset signal pin as input */
     P1DIR &= ~RST_PIN;
     P1REN |= RST_PIN; // Enable pulldown
     P1IES &= ~RST_PIN; // Rising edge 0 -> 1
     P1IFG &= ~RST_PIN; // Clear interrupt flag
     P1IE |= RST_PIN; // Enable interrupt
+#endif
 
     P5DIR &= ~SPI_SC; // Set CS as input
 }
@@ -135,6 +137,7 @@ int mpy_read_dma_blocking(char *dst, size_t size)
     return ret;
 }
 
+#if RST_PIN_ISR
 __attribute__((interrupt(PORT1_VECTOR)))
 void port1_isr(void)
 {
@@ -145,3 +148,4 @@ void port1_isr(void)
         PMMCTL0 |= PMMSWBOR;
     }
 }
+#endif
