@@ -157,20 +157,20 @@ void nvm_comm_init(void) {
     // Init the reset pin for the NV memory controller
     rst_pin_nv.base.type = &digitalio_digitalinout_type;
     common_hal_digitalio_digitalinout_construct(&rst_pin_nv, &pin_PA21);
-    common_hal_digitalio_digitalinout_switch_to_output(&rst_pin_nv, true, DRIVE_MODE_PUSH_PULL);
+    common_hal_digitalio_digitalinout_switch_to_output(&rst_pin_nv, true, DRIVE_MODE_OPEN_DRAIN);
     common_hal_digitalio_digitalinout_never_reset(&rst_pin_nv);
-    common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, false);
+    common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, true);
 }
 
 void nvm_reset(void) {
-    common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, true);
+    common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, false);
     asm volatile("nop");
     asm volatile("nop");
     asm volatile("nop");
     asm volatile("nop");
     asm volatile("nop");
     mp_hal_delay_ms(1);
-    common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, false);
+    common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, true);
 }
 
 void nvm_write(char *src, size_t len) {
