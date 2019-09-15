@@ -107,7 +107,7 @@ bool supervisor_flash_write_block(const uint8_t *src, uint32_t block) {
     #ifdef MICROPY_HW_LED_MSC
         port_pin_set_output_level(MICROPY_HW_LED_MSC, true);
     #endif
-    temp_status_color(ACTIVE_WRITE);
+    // temp_status_color(ACTIVE_WRITE);
     // non-MBR block, copy to cache
     int32_t dest = convert_block_to_flash_addr(block);
     if (dest == -1) {
@@ -126,7 +126,7 @@ bool supervisor_flash_write_block(const uint8_t *src, uint32_t block) {
     if (error_code != ERR_NONE) {
         return false;
     }
-    clear_temp_status();
+    // clear_temp_status();
     #ifdef MICROPY_HW_LED_MSC
         port_pin_set_output_level(MICROPY_HW_LED_MSC, false);
     #endif
