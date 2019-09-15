@@ -405,10 +405,11 @@ int __attribute__((used)) main(void) {
     }
 
     // Clear nvm when the connection is made
-    bool clear_nvm = false;
+    bool clear_nvm = true;
     if (safe_mode == USER_RESET) {
-        clear_nvm = true;
         safe_mode = NO_SAFE_MODE;
+    } else if (safe_mode == NO_SAFE_MODE) {
+        clear_nvm = false;
     }
 
     // Create a new filesystem only if we're not in a safe mode.
