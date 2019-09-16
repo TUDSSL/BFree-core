@@ -104,6 +104,7 @@ volatile uint32_t checkpoint_svc_restore = 0;
   do {                                                                         \
     checkpoint_svc_restore = 0;                                                \
     __asm__ volatile("SVC 42");                                                \
+    __DSB();                                                                   \
     __ISB();                                                                   \
   } while (0)
 
@@ -111,7 +112,6 @@ volatile uint32_t checkpoint_svc_restore = 0;
   do {                                                                         \
     checkpoint_svc_restore = 1;                                                \
     __asm__ volatile("SVC 43");                                                \
-    __ISB();                                                                   \
   } while (0)
 
 /*
