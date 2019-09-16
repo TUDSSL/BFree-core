@@ -169,7 +169,6 @@ void nvm_reset(void) {
     asm volatile("nop");
     asm volatile("nop");
     asm volatile("nop");
-    mp_hal_delay_ms(1);
     common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, true);
 }
 
