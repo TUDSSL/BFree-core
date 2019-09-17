@@ -40,6 +40,7 @@
 #include "shared-bindings/microcontroller/Pin.h"
 #include "supervisor/shared/external_flash/common_commands.h"
 #include "supervisor/shared/external_flash/external_flash.h"
+#include "supervisor/filesystem.h"
 #include "py/mpconfig.h"
 
 #include "lib/checkpoint/checkpoint.h"
@@ -105,7 +106,7 @@ volatile uint32_t checkpoint_svc_restore = 0;
     checkpoint_svc_restore = 0;                                                \
     __asm__ volatile("SVC 42");                                                \
     __DSB();                                                                   \
-    __ISB();                                                                   \
+    /*__ISB();*/                                                                   \
   } while (0)
 
 #define CP_RESTORE_REGISTERS()                                                 \
@@ -127,9 +128,8 @@ digitalio_digitalinout_obj_t rst_pin_nv;
 void nvm_wait_process(void) {
     // Wait untill the NVM signals it's ready
     while (common_hal_digitalio_digitalinout_get_value(&wr_pin_nv) == false) {
-#ifdef MICROPY_VM_HOOK_LOOP
-        MICROPY_VM_HOOK_LOOP
-#endif
+        filesystem_background();
+        usb_background();
     }
 }
 
@@ -148,11 +148,13 @@ void nvm_comm_init(void) {
     nv_spi_bus.spi_desc = SPI_M_SERCOM1;
     common_hal_busio_spi_construct(&nv_spi_bus, &pin_PA17, &pin_PA16, &pin_PA19);
     common_hal_busio_spi_configure(&nv_spi_bus, 2000000, 0, 0, 8);
+    common_hal_busio_spi_never_reset(&nv_spi_bus);
 
     // Init the WR pin for NV memory controller
     wr_pin_nv.base.type = &digitalio_digitalinout_type;
     common_hal_digitalio_digitalinout_construct(&wr_pin_nv, &pin_PA07);
     common_hal_digitalio_digitalinout_switch_to_input(&wr_pin_nv, PULL_DOWN);
+    common_hal_digitalio_digitalinout_never_reset(&wr_pin_nv);
 
     // Init the reset pin for the NV memory controller
     rst_pin_nv.base.type = &digitalio_digitalinout_type;
@@ -163,12 +165,14 @@ void nvm_comm_init(void) {
 }
 
 void nvm_reset(void) {
+    common_hal_busio_spi_unlock(&nv_spi_bus);
     common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, false);
     asm volatile("nop");
     asm volatile("nop");
     asm volatile("nop");
     asm volatile("nop");
     asm volatile("nop");
+    mp_hal_delay_ms(1);
     common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, true);
 }
 
@@ -322,21 +326,21 @@ void checkpoint_memory(void) {
     size_t stack_size = (size_t)&_estack - (size_t)sp;
     char *stack_ptr = (char *)sp;
     checkpoint_memory_region(stack_ptr, stack_size);
-    printf(".stack\t[%p-%p,%d]\r\n", sp, &_estack, stack_size);
+    //printf(".stack\t[%p-%p,%d]\r\n", sp, &_estack, stack_size);
 #endif
 
 #if CP_DATA
     size_t data_size = (size_t)&_erelocate_cp - (size_t)&_srelocate;
     char *data_ptr = (char *)&_srelocate;
     checkpoint_memory_region(data_ptr, data_size);
-    printf(".data\t[%p-%p,%d]\r\n", &_srelocate, &_erelocate_cp, data_size);
+    //printf(".data\t[%p-%p,%d]\r\n", &_srelocate, &_erelocate_cp, data_size);
 #endif
 
 #if CP_BSS
     size_t bss_size = (size_t)&_ebss_cp - (size_t)&_sbss;
     char *bss_ptr = (char *)&_sbss;
     checkpoint_memory_region(bss_ptr, bss_size);
-    printf(".bss\t[%p-%p,%d]\r\n", &_sbss, &_ebss_cp, bss_size);
+    //printf(".bss\t[%p-%p,%d]\r\n", &_sbss, &_ebss_cp, bss_size);
 #endif
 
 #if CP_ALLOCATIONS
@@ -347,7 +351,7 @@ void checkpoint_memory(void) {
     for (uint32_t i=0; i<table_size; i++) {
         at_ptr = allocations[i].ptr;
         if (at_ptr != NULL) {
-            printf("Checkpoint allocation index: %d, ptr: 0x%p, size: %d\r\n", (int)i, at_ptr, (int)allocations[i].length);
+            //printf("Checkpoint allocation index: %d, ptr: 0x%p, size: %d\r\n", (int)i, at_ptr, (int)allocations[i].length);
             checkpoint_memory_region((char *)at_ptr, allocations[i].length);
         }
     }

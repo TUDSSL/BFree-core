@@ -439,6 +439,7 @@ int __attribute__((used)) main(void) {
 
 #if CLEAR_NVM_USER_RESET
     if (clear_nvm) {
+        printf("deleting checkpoint\r\n");
         checkpoint_delete();
     }
 #endif
@@ -459,6 +460,9 @@ int __attribute__((used)) main(void) {
         if (exit_code == PYEXEC_FORCED_EXIT) {
             if (!first_run) {
                 serial_write_compressed(translate("soft reboot\n"));
+                printf("deleting checkpoint\r\n");
+                nvm_reset();
+                checkpoint_delete();
             }
             first_run = false;
             skip_repl = run_code_py(safe_mode);
