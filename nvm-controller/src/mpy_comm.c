@@ -43,6 +43,11 @@ void mpy_comm_start(void)
     EUSCI_B_SPI_enable(EUSCI_B1_BASE);
     EUSCI_B_SPI_clearInterrupt(EUSCI_B0_BASE,
             EUSCI_B_SPI_RECEIVE_INTERRUPT);
+
+    //mpy_wr_low();
+    //mpy_wr_high();
+    //__delay_cycles(100);
+    //mpy_wr_low();
 }
 
 int mpy_write(char *src, size_t size)
