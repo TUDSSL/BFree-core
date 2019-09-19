@@ -65,7 +65,14 @@ void common_hal_digitalio_digitalinout_restore(void) {
     for (i = 0; i < 32; i++) {
         r = &DigitalInOut_Restore[i];
         if (r->active) {
+            bool output = r->self->output;
+            bool open_drain = r->self->open_drain;
             _common_hal_digitalio_digitalinout_construct(r->self, r->pin);
+            if(output == true) {
+                common_hal_digitalio_digitalinout_switch_to_output(r->self, r->value, open_drain);
+                common_hal_digitalio_digitalinout_set_value(r->self, r->value);
+            }
+        
         }
     }
 }
