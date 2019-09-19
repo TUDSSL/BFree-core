@@ -167,12 +167,18 @@ void nvm_comm_init(void) {
 void nvm_reset(void) {
     common_hal_busio_spi_unlock(&nv_spi_bus);
     common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, false);
-    asm volatile("nop");
-    asm volatile("nop");
-    asm volatile("nop");
-    asm volatile("nop");
-    asm volatile("nop");
-    mp_hal_delay_ms(1);
+    for (int i=0; i<100; i++) {
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+    }
     common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, true);
 }
 
@@ -456,15 +462,17 @@ void checkpoint_init(void)
  * Delete the currect checkpoint used for restore in NVM
  * Can be used to do a clean boot (restart the program)
  */
-void checkpoint_delete(void)
+__attribute__((noinline))
+int checkpoint_delete(void)
 {
     nvm_write_byte(CPCMND_DEL);
     char resp = nvm_read_byte();
     if (resp != CPCMND_ACK) {
         // Deletion failed
         // TODO: handle
-        return;
+        return 0;
     }
+    return 1;
 }
 
 /*

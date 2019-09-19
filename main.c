@@ -407,9 +407,16 @@ int __attribute__((used)) main(void) {
     // Clear nvm when the connection is made
     bool clear_nvm = true;
     if (safe_mode == USER_RESET) {
+        clear_nvm = false;
         safe_mode = NO_SAFE_MODE;
     } else if (safe_mode == NO_SAFE_MODE) {
         clear_nvm = false;
+    } else if (safe_mode == HARD_CRASH) {
+        safe_mode = NO_SAFE_MODE;
+        clear_nvm = true;
+    } else if (safe_mode == BROWNOUT) {
+        clear_nvm = false;
+        safe_mode = NO_SAFE_MODE;
     }
 
     // Create a new filesystem only if we're not in a safe mode.
@@ -440,11 +447,12 @@ int __attribute__((used)) main(void) {
 #if CLEAR_NVM_USER_RESET
     if (clear_nvm) {
         printf("deleting checkpoint\r\n");
-        checkpoint_delete();
+        int r = checkpoint_delete();
+        if (r == 0) {
+            printf("deleting checkpoint FAILED!\r\n");
+        }
     }
 #endif
-
-    // Restore a checkpoint (if required)
     pyrestore();
 
     stack_init();
@@ -462,7 +470,11 @@ int __attribute__((used)) main(void) {
                 serial_write_compressed(translate("soft reboot\n"));
                 printf("deleting checkpoint\r\n");
                 nvm_reset();
-                checkpoint_delete();
+                int r = checkpoint_delete();
+                if (r == 0) {
+                    printf("deleting checkpoint FAILED!\r\n");
+                }
+                //reset_cpu();
             }
             first_run = false;
             skip_repl = run_code_py(safe_mode);

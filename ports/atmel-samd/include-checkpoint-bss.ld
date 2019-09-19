@@ -9,7 +9,7 @@
 *(*.pulse_buffer)
 *(*.pulse_index)
 *(*.pulse_length)
-*(*.pyexec_system_exit)
+/* *(*.pyexec_system_exit) */
 *(*.refcount) /* PWM */
 *(*.reload_requested)
 *(*.rl)

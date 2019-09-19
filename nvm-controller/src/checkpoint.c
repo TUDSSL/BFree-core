@@ -70,6 +70,14 @@ void checkpoint_table_clear_restore(void)
     memset(checkpoint_restore_table, 0, (sizeof(segment_t *) * CHECKPOINT_MAX_SEGMENTS));
 }
 
+void checkpoint_table_clear_all(void)
+{
+    for (int i=0; i<CHECKPOINT_MAX_SEGMENTS; i++) {
+        checkpoint_table_a[i] = NULL;
+        checkpoint_table_b[i] = NULL;
+    }
+}
+
 void checkpoint_table_add(segment_t *segment)
 {
     // TODO: add size checking

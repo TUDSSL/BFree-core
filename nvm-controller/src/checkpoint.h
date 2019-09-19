@@ -34,6 +34,7 @@ segment_t *segment_alloc(size_t size);
 void checkpoint_update(void);
 void checkpoint_table_clear_working(void);
 void checkpoint_table_clear_restore(void);
+void checkpoint_table_clear_all(void);
 void checkpoint_table_add(segment_t *segment);
 segment_t *checkpoint_segment_alloc(size_t size);
 void checkpoint_commit(void); // Finish a checkpoint

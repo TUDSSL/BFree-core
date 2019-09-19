@@ -270,7 +270,10 @@ void process_restore_registers(segment_t *segment)
 
 void process_delete_checkpoint(void)
 {
-    checkpoint_table_clear_restore();
+    //checkpoint_table_clear_restore();
+    //checkpoint_table_clear_working();
+    checkpoint_table_clear_all();
+    checkpoint_update();
     // TODO: Do we also want to clear the current checkpoint?
     // Currently it does not as I don't see why that would be a good feature
 }
