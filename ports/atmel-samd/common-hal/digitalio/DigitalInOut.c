@@ -57,28 +57,15 @@ struct digitalinout_restore {
     bool value;
 };
 
-struct digitalinout_restore DigitalInOut_Restore[256];
+struct digitalinout_restore DigitalInOut_Restore[32];
 
 void common_hal_digitalio_digitalinout_restore(void) {
-    digitalio_digitalinout_obj_t test_pin;
-    test_pin.base.type = &digitalio_digitalinout_type;
-    common_hal_digitalio_digitalinout_construct(&test_pin, &pin_PA15);
-    common_hal_digitalio_digitalinout_switch_to_output(&test_pin, true, DRIVE_MODE_OPEN_DRAIN);
-    common_hal_digitalio_digitalinout_never_reset(&test_pin);
-    common_hal_digitalio_digitalinout_set_value(&test_pin, true);
-
     struct digitalinout_restore *r;
     int i = 0;
-    for (i = 0; i < 256; i++) {
+    for (i = 0; i < 32; i++) {
         r = &DigitalInOut_Restore[i];
         if (r->active) {
             _common_hal_digitalio_digitalinout_construct(r->self, r->pin);
-            if((r->self->output) == true) {
-                common_hal_digitalio_digitalinout_switch_to_output(r->self, r->value, r->self->open_drain);
-                common_hal_digitalio_digitalinout_never_reset(r->self);
-                common_hal_digitalio_digitalinout_set_value(r->self, r->value);
-            }
-        
         }
     }
 }
@@ -109,7 +96,11 @@ void common_hal_digitalio_digitalinout_deinit(digitalio_digitalinout_obj_t* self
     }
     reset_pin_number(self->pin->number);
     self->pin = mp_const_none;
+<<<<<<< Updated upstream
     DigitalInOut_Restore[(uint8_t)(self->pin->number)].self = self;
+=======
+    DigitalInOut_Restore[(uint8_t)(self->pin->number)].self->pin = mp_const_none;
+>>>>>>> Stashed changes
 
 }
 
@@ -131,7 +122,12 @@ void common_hal_digitalio_digitalinout_switch_to_output(
     self->output = true;
     self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
 
+<<<<<<< Updated upstream
     DigitalInOut_Restore[(uint8_t)pin].self = self;
+=======
+    DigitalInOut_Restore[(uint8_t)pin].self->output = true;
+    DigitalInOut_Restore[(uint8_t)pin].self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
+>>>>>>> Stashed changes
     // Direction is set in set_value. We don't need to do it here.
     common_hal_digitalio_digitalinout_set_value(self, value);
 }

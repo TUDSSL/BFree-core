@@ -21,6 +21,7 @@
 *(*.yasmarang_dat)
 *(*.I2C_Restore)
 *(*.DigitalInOut_Restore)
+*(*.NV_Time)
 *(*.allocations)
 *(*.low_address)
 *(*.high_address)
