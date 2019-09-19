@@ -20,6 +20,7 @@
 *(*.ticks_ms)
 *(*.yasmarang_dat)
 *(*.I2C_Restore)
+*(*.DigitalInOut_Restore)
 *(*.allocations)
 *(*.low_address)
 *(*.high_address)
