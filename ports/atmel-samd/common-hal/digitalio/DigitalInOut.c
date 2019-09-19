@@ -103,11 +103,7 @@ void common_hal_digitalio_digitalinout_deinit(digitalio_digitalinout_obj_t* self
     }
     reset_pin_number(self->pin->number);
     self->pin = mp_const_none;
-<<<<<<< Updated upstream
-    DigitalInOut_Restore[(uint8_t)(self->pin->number)].self = self;
-=======
     DigitalInOut_Restore[(uint8_t)(self->pin->number)].self->pin = mp_const_none;
->>>>>>> Stashed changes
 
 }
 
@@ -129,12 +125,8 @@ void common_hal_digitalio_digitalinout_switch_to_output(
     self->output = true;
     self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
 
-<<<<<<< Updated upstream
-    DigitalInOut_Restore[(uint8_t)pin].self = self;
-=======
     DigitalInOut_Restore[(uint8_t)pin].self->output = true;
     DigitalInOut_Restore[(uint8_t)pin].self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
->>>>>>> Stashed changes
     // Direction is set in set_value. We don't need to do it here.
     common_hal_digitalio_digitalinout_set_value(self, value);
 }
