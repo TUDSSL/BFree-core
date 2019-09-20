@@ -8,10 +8,10 @@ string(TOUPPER ${DEVICE} DEVICE_DEFINE)
 set(DEVICE_DEFINE "__${DEVICE_DEFINE}__")
 
 # MSP430 support files (installation dependent)
-set(PATH_MSP430_SUPPORT "/opt/msp430-gcc-support-files/include" CACHE STRING "")
-set(PATH_MSP430_LIB "/opt/msp430/msp430-elf" CACHE STRING "")
-set(PATH_MSP430_BIN "/opt/msp430/bin" CACHE STRING "")
-set(PATH_MSP430_INCLUDE "/opt/msp430/lib/gcc/msp430-elf/8.2.0/include" CACHE STRING "")
+set(PATH_MSP430_SUPPORT "/Applications/ti/ccsv8/tools/compiler/msp430-gcc-support-files/include" CACHE STRING "")
+set(PATH_MSP430_LIB "/Applications/ti/ccsv8/tools/compiler/msp430-gcc-8.2.0.52_macos/msp430-elf" CACHE STRING "")
+set(PATH_MSP430_BIN "/Applications/ti/ccsv8/tools/compiler/msp430-gcc-8.2.0.52_macos/bin" CACHE STRING "")
+set(PATH_MSP430_INCLUDE "/Applications/ti/ccsv8/tools/compiler/msp430-gcc-8.2.0.52_macos/lib/gcc/msp430-elf/8.2.0/include" CACHE STRING "")
 
 # Device specific driverlib
 set(PATH_MSP430_DRIVERS "${PROJECT_SOURCE_DIR}/MSP430FR5xx_6xx" CACHE STRING "")

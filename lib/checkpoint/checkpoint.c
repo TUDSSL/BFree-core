@@ -384,6 +384,8 @@ void checkpoint_memory(void) {
  *
  */
 extern void common_hal_busio_i2c_restore(void);
+extern void common_hal_digitalio_digitalinout_restore(void);
+extern void common_hal_analogio_analogin_restore(void);
 
 __attribute__((noinline))
 static int pyrestore_process(void) {
@@ -404,6 +406,8 @@ static int pyrestore_process(void) {
 //                    gdb_break_me();
 //#endif
                     common_hal_busio_i2c_restore();
+                    common_hal_analogio_analogin_restore();
+                    common_hal_digitalio_digitalinout_restore();
                     restore_registers();
                 }
 
