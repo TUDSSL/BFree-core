@@ -85,8 +85,7 @@ digitalinout_result_t common_hal_digitalio_digitalinout_construct(
     DigitalInOut_Restore[pin->number].self = self;
     DigitalInOut_Restore[pin->number].pin = pin;
 
-    digitalinout_result_t temp = _common_hal_digitalio_digitalinout_construct(self, pin);
-    return temp;
+    return _common_hal_digitalio_digitalinout_construct(self, pin);
 }
 // RESTORE CODE END
 
