@@ -64,7 +64,9 @@ void common_hal_digitalio_digitalinout_restore(void) {
     int i = 0;
     for (i = 0; i < 32; i++) {
         r = &DigitalInOut_Restore[i];
-        if (r->active) {
+        // PA06, PA07, PA16, PA17, PA18, PA19, PA20, PA21 are used by checkpointing protocol
+        // need to exclude them here since they are already handled in checkpoint.c
+        if (i != 6 && i != 7 && i != 16 && i != 17 && i != 18 && i != 19 && i != 20 && i != 21 && r->active) { 
             bool output = r->self->output;
             bool open_drain = r->self->open_drain;
             _common_hal_digitalio_digitalinout_construct(r->self, r->pin);
