@@ -1,10 +1,3 @@
-/*
- * ports.h
- *
- *  Created on: Jun 25, 2019
- *      Author: abubakar
- */
-
 #ifndef PORTS_H_
 #define PORTS_H_
 

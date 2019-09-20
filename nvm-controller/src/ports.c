@@ -1,10 +1,3 @@
-/*
- * ports.c
- *
- *  Created on: Jun 25, 2019
- *      Author: abubakar
- */
-
 #ifndef PORTS_C_
 #define PORTS_C_
 

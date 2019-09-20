@@ -1,10 +1,3 @@
-/*
- * debug.h
- *
- *  Created on: Jun 25, 2019
- *      Author: abubakar
- */
-
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
