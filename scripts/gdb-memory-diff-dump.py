@@ -11,13 +11,14 @@ MEM_DUMP_BASENAME = '_memory_dump_'
 breakpoints = [
         'gdb_break_me', # after checkpoint (restore point)
         'HardFault_Handler',
+        'vm.c:210',
         ]
 
 memory_dump_ranges = {
-        'stack':    [0x20007b90, 0x20007bf8],
-        'data':     [0x20000000, 0x20000010],
-        'bss':      [0x20000400, 0x200006c4],
-        'gc':       [0x20001c70, 0x20006730],
+        'stack':        [0x00, 0x00],
+        'data':         [0x00, 0x00],
+        'bss':          [0x00, 0x00],
+        'allocations':  [0x00, 0x00], # From end bss to end (start) stack
         }
 
 def user_reset():
@@ -81,11 +82,16 @@ def setup_static_memory_regions():
     stack_end_str = gdb.execute('print &_estack', to_string=True)
     stack_end = int(re.search('.*(0x[^\s]*).*$', stack_end_str)[1], 16)
 
+    # Allocations start (after bss)
+    bss_nocp_end_str = gdb.execute('print &_ebss', to_string=True)
+    bss_nocp_end = int(re.search('.*(0x[^\s]*).*$', bss_nocp_end_str)[1], 16)
+
     memory_dump_ranges['data'][0] = data_start
     memory_dump_ranges['data'][1] = data_end
     memory_dump_ranges['bss'][0] = bss_start
     memory_dump_ranges['bss'][1] = bss_end
     memory_dump_ranges['stack'][1] = stack_end
+    memory_dump_ranges['allocations'][0] = bss_nocp_end
 
     print('.data start: ' + hex(data_start) + ' end: ' + hex(data_end))
     print('.bss start: ' + hex(bss_start) + ' end: ' + hex(bss_end))
@@ -94,15 +100,20 @@ def setup_dynamic_memory_regions():
     # Stack
     memory_dump_ranges['stack'][0] = get_sp()
 
+    # Allocations (betweem the end of the bss and the top of the stack (SP)
+    memory_dump_ranges['allocations'][1] = memory_dump_ranges['stack'][0]
+
     # Garbage Collection
-    gc_start_str = gdb.execute('print mp_state_ctx.mem.gc_pool_start', to_string=True)
-    gc_end_str = gdb.execute('print mp_state_ctx.mem.gc_pool_end', to_string=True)
-    gc_start = int(re.search('.*(0x[^\s]*).*$', gc_start_str)[1], 16)
-    gc_end = int(re.search('.*(0x[^\s]*).*$', gc_end_str)[1], 16)
+    #gc_start_str = gdb.execute('print mp_state_ctx.mem.gc_pool_start', to_string=True)
+    #gc_end_str = gdb.execute('print mp_state_ctx.mem.gc_pool_end', to_string=True)
+    #gc_start = int(re.search('.*(0x[^\s]*).*$', gc_start_str)[1], 16)
+    #gc_end = int(re.search('.*(0x[^\s]*).*$', gc_end_str)[1], 16)
 
     print('stack start: ' + hex(memory_dump_ranges['stack'][0]) \
             + ' end: ' + hex(memory_dump_ranges['stack'][1]))
-    print('GC pool start: ' + hex(gc_start) + ' end: ' + hex(gc_end))
+    print('Allocations start: ' + hex(memory_dump_ranges['allocations'][0]) \
+            + ' end: ' + hex(memory_dump_ranges['allocations'][1]))
+    #print('GC pool start: ' + hex(gc_start) + ' end: ' + hex(gc_end))
 
 def get_sp():
     sp_str = gdb.execute('print $sp', to_string=True)
@@ -130,6 +141,8 @@ def breakpoint_handler(event):
                 dump_memory('after-cp')
                 print('Registers array:')
                 gdb.execute('p /x registers')
+                print('Registers:')
+                gdb.execute('info reg')
                 print('Allocation table:')
                 gdb.execute('p allocations')
                 gdb.execute('c')
@@ -151,6 +164,8 @@ def breakpoint_handler(event):
                             gdb.execute(sym_cmd)
                 print('Registers array:')
                 gdb.execute('p /x registers')
+                print('Registers:')
+                gdb.execute('info reg')
                 print('Allocation table:')
                 gdb.execute('p allocations')
                 gdb.execute('c')
@@ -181,6 +196,14 @@ def breakpoint_handler(event):
                         sym_cmd = 'info symbol ' + hex(diff_addr)
                         #print('Sumbol command: ' + sym_cmd)
                         gdb.execute(sym_cmd)
+        elif location == breakpoints[2]:
+            gdb.execute("bt")
+            print('Registers:')
+            gdb.execute('info reg')
+            print('Code state:')
+            gdb.execute('p *code_state')
+            gdb.execute('c')
+
         else:
             gdb.execute("bt")
 
