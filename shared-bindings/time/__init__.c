@@ -36,6 +36,8 @@
 #include "shared-bindings/time/__init__.h"
 #include "supervisor/shared/translate.h"
 
+#include "lib/checkpoint/checkpoint.h"
+
 //| :mod:`time` --- time and timing related functions
 //| ========================================================
 //|
@@ -62,6 +64,12 @@ STATIC mp_obj_t time_monotonic(void) {
 }
 MP_DEFINE_CONST_FUN_OBJ_0(time_monotonic_obj, time_monotonic);
 
+
+struct nv_time{
+    int value;
+};
+
+struct nv_time NV_Time;
 //| .. function:: sleep(seconds)
 //|
 //|   Sleep for a given number of seconds.
@@ -77,7 +85,14 @@ STATIC mp_obj_t time_sleep(mp_obj_t seconds_o) {
     if (seconds < 0) {
         mp_raise_ValueError(translate("sleep length must be non-negative"));
     }
-    common_hal_time_delay_ms(1000 * seconds);
+    int sleep = (1000 * seconds)/10;
+    NV_Time.value = 0;
+    while (NV_Time.value < sleep){
+        common_hal_time_delay_ms(100 * seconds);
+        NV_Time.value += 10;
+        checkpoint();
+    }
+    //common_hal_time_delay_ms(1000 * seconds);
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_1(time_sleep_obj, time_sleep);

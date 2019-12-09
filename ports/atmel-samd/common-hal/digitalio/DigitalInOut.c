@@ -36,7 +36,7 @@
 #include "shared-bindings/digitalio/DigitalInOut.h"
 #include "supervisor/shared/translate.h"
 
-digitalinout_result_t common_hal_digitalio_digitalinout_construct(
+digitalinout_result_t _common_hal_digitalio_digitalinout_construct(
         digitalio_digitalinout_obj_t* self, const mcu_pin_obj_t* pin) {
     claim_pin(pin);
     self->pin = pin;
@@ -48,6 +48,46 @@ digitalinout_result_t common_hal_digitalio_digitalinout_construct(
     gpio_set_pin_pull_mode(pin->number, GPIO_PULL_OFF);
     return DIGITALINOUT_OK;
 }
+
+// RESTORE CODE START
+struct digitalinout_restore {
+    bool active;
+    digitalio_digitalinout_obj_t *self;
+    const mcu_pin_obj_t *pin;
+    bool value;
+};
+
+struct digitalinout_restore DigitalInOut_Restore[32];
+
+void common_hal_digitalio_digitalinout_restore(void) {
+    struct digitalinout_restore *r;
+    int i = 0;
+    for (i = 0; i < 32; i++) {
+        r = &DigitalInOut_Restore[i];
+        // PA06, PA07, PA16, PA17, PA18, PA19, PA20, PA21 are used by checkpointing protocol
+        // need to exclude them here since they are already handled in checkpoint.c
+        if (i != 6 && i != 7 && i != 16 && i != 17 && i != 18 && i != 19 && i != 20 && i != 21 && r->active) { 
+            bool output = r->self->output;
+            bool open_drain = r->self->open_drain;
+            _common_hal_digitalio_digitalinout_construct(r->self, r->pin);
+            if(output == true) {
+                common_hal_digitalio_digitalinout_switch_to_output(r->self, r->value, open_drain);
+                common_hal_digitalio_digitalinout_set_value(r->self, r->value);
+            }
+        
+        }
+    }
+}
+
+digitalinout_result_t common_hal_digitalio_digitalinout_construct(
+        digitalio_digitalinout_obj_t* self, const mcu_pin_obj_t* pin) {
+    DigitalInOut_Restore[pin->number].active = true;
+    DigitalInOut_Restore[pin->number].self = self;
+    DigitalInOut_Restore[pin->number].pin = pin;
+
+    return _common_hal_digitalio_digitalinout_construct(self, pin);
+}
+// RESTORE CODE END
 
 void common_hal_digitalio_digitalinout_never_reset(
         digitalio_digitalinout_obj_t *self) {
@@ -64,6 +104,8 @@ void common_hal_digitalio_digitalinout_deinit(digitalio_digitalinout_obj_t* self
     }
     reset_pin_number(self->pin->number);
     self->pin = mp_const_none;
+    DigitalInOut_Restore[(uint8_t)(self->pin->number)].self->pin = mp_const_none;
+
 }
 
 void common_hal_digitalio_digitalinout_switch_to_input(
@@ -84,6 +126,8 @@ void common_hal_digitalio_digitalinout_switch_to_output(
     self->output = true;
     self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
 
+    DigitalInOut_Restore[(uint8_t)pin].self->output = true;
+    DigitalInOut_Restore[(uint8_t)pin].self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
     // Direction is set in set_value. We don't need to do it here.
     common_hal_digitalio_digitalinout_set_value(self, value);
 }
@@ -98,6 +142,9 @@ void common_hal_digitalio_digitalinout_set_value(
     const uint8_t pin = self->pin->number;
     const uint8_t port = GPIO_PORT(pin);
     const uint32_t pin_mask = 1U << GPIO_PIN(pin);
+
+    DigitalInOut_Restore[(uint8_t)(self->pin->number)].value = value;
+
     if (value) {
         if (self->open_drain) {
             // Assertion: pull is off, so the pin is floating in this case.
