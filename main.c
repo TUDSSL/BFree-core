@@ -58,6 +58,9 @@
 #include "supervisor/shared/stack.h"
 #include "supervisor/serial.h"
 
+#include "hal_gpio.h"
+#include "atmel_start_pins.h"
+
 #if CIRCUITPY_NETWORK
 #include "shared-module/network/__init__.h"
 #endif
@@ -394,6 +397,9 @@ int __attribute__((used)) main(void) {
 
     // initialise the cpu and peripherals
     safe_mode_t safe_mode = port_init();
+
+    gpio_set_pin_direction(PA10, GPIO_DIRECTION_OUT);
+    gpio_set_pin_level(PA10, true);
 
     // Turn on LEDs
     init_status_leds();
