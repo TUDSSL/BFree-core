@@ -55,6 +55,7 @@ struct digitalinout_restore {
     digitalio_digitalinout_obj_t *self;
     const mcu_pin_obj_t *pin;
     bool value;
+    digitalio_pull_t pull;
 };
 
 struct digitalinout_restore DigitalInOut_Restore[32];
@@ -74,7 +75,9 @@ void common_hal_digitalio_digitalinout_restore(void) {
                 common_hal_digitalio_digitalinout_switch_to_output(r->self, r->value, open_drain);
                 common_hal_digitalio_digitalinout_set_value(r->self, r->value);
             }
-        
+            else {
+                common_hal_digitalio_digitalinout_switch_to_input(r->self, r->pull);
+            }
         }
     }
 }
@@ -84,6 +87,8 @@ digitalinout_result_t common_hal_digitalio_digitalinout_construct(
     DigitalInOut_Restore[pin->number].active = true;
     DigitalInOut_Restore[pin->number].self = self;
     DigitalInOut_Restore[pin->number].pin = pin;
+    DigitalInOut_Restore[pin->number].value = false;
+    DigitalInOut_Restore[pin->number].pull = PULL_NONE;
 
     return _common_hal_digitalio_digitalinout_construct(self, pin);
 }
@@ -111,6 +116,9 @@ void common_hal_digitalio_digitalinout_deinit(digitalio_digitalinout_obj_t* self
 void common_hal_digitalio_digitalinout_switch_to_input(
         digitalio_digitalinout_obj_t* self, digitalio_pull_t pull) {
     self->output = false;
+
+    DigitalInOut_Restore[(uint8_t)(self->pin->number)].self->output = false;
+
     // This also sets direction to input.
     common_hal_digitalio_digitalinout_set_pull(self, pull);
 }
@@ -126,8 +134,8 @@ void common_hal_digitalio_digitalinout_switch_to_output(
     self->output = true;
     self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
 
-    DigitalInOut_Restore[(uint8_t)pin].self->output = true;
-    DigitalInOut_Restore[(uint8_t)pin].self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
+    DigitalInOut_Restore[pin].self->output = true;
+    DigitalInOut_Restore[pin].self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
     // Direction is set in set_value. We don't need to do it here.
     common_hal_digitalio_digitalinout_set_value(self, value);
 }
@@ -180,6 +188,10 @@ void common_hal_digitalio_digitalinout_set_drive_mode(
         digitalio_drive_mode_t drive_mode) {
     bool value = common_hal_digitalio_digitalinout_get_value(self);
     self->open_drain = drive_mode == DRIVE_MODE_OPEN_DRAIN;
+
+    //Need to check for output pins
+    DigitalInOut_Restore[(uint8_t)(self->pin->number)].self->open_drain = DRIVE_MODE_OPEN_DRAIN;
+
     // True is implemented differently between modes so reset the value to make
     // sure it's correct for the new mode.
     if (value) {
@@ -198,6 +210,9 @@ digitalio_drive_mode_t common_hal_digitalio_digitalinout_get_drive_mode(
 
 void common_hal_digitalio_digitalinout_set_pull(
         digitalio_digitalinout_obj_t* self, digitalio_pull_t pull) {
+    
+    DigitalInOut_Restore[(uint8_t)(self->pin->number)].pull = pull;
+
     enum gpio_pull_mode asf_pull = GPIO_PULL_OFF;
     switch (pull) {
         case PULL_UP:
