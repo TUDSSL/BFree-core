@@ -1,8 +1,17 @@
 import os
 import sys
 import re
+import signal
 
 import memdiff
+
+
+#def keyboardInterruptHandler(signal, frame):
+#    print("KeyboardInterrupt (ID: {}) has been caught. Cleaning up...".format(signal), flush=True)
+#    raise gdb.GdbError ("CTRL-C")
+#    #exit(0)
+#
+#signal.signal(signal.SIGINT, keyboardInterruptHandler)
 
 LOG_FILE='/tmp/gdb.log'
 
@@ -69,22 +78,22 @@ def setup_static_memory_regions():
     # Data section
     data_start_str = gdb.execute('print &_srelocate', to_string=True)
     data_end_str = gdb.execute('print &_erelocate_cp', to_string=True)
-    data_start = int(re.search('.*(0x[^\s]*).*$', data_start_str)[1], 16)
-    data_end = int(re.search('.*(0x[^\s]*).*$', data_end_str)[1], 16)
+    data_start = int(re.search(r'.*(0x[^\s]*).*$', data_start_str)[1], 16)
+    data_end = int(re.search(r'.*(0x[^\s]*).*$', data_end_str)[1], 16)
 
     # BSS section
     bss_start_str = gdb.execute('print &_sbss', to_string=True)
     bss_end_str = gdb.execute('print &_ebss_cp', to_string=True)
-    bss_start = int(re.search('.*(0x[^\s]*).*$', bss_start_str)[1], 16)
-    bss_end = int(re.search('.*(0x[^\s]*).*$', bss_end_str)[1], 16)
+    bss_start = int(re.search(r'.*(0x[^\s]*).*$', bss_start_str)[1], 16)
+    bss_end = int(re.search(r'.*(0x[^\s]*).*$', bss_end_str)[1], 16)
 
     # Stack end
     stack_end_str = gdb.execute('print &_estack', to_string=True)
-    stack_end = int(re.search('.*(0x[^\s]*).*$', stack_end_str)[1], 16)
+    stack_end = int(re.search(r'.*(0x[^\s]*).*$', stack_end_str)[1], 16)
 
     # Allocations start (after bss)
     bss_nocp_end_str = gdb.execute('print &_ebss', to_string=True)
-    bss_nocp_end = int(re.search('.*(0x[^\s]*).*$', bss_nocp_end_str)[1], 16)
+    bss_nocp_end = int(re.search(r'.*(0x[^\s]*).*$', bss_nocp_end_str)[1], 16)
 
     memory_dump_ranges['data'][0] = data_start
     memory_dump_ranges['data'][1] = data_end
@@ -95,6 +104,7 @@ def setup_static_memory_regions():
 
     print('.data start: ' + hex(data_start) + ' end: ' + hex(data_end))
     print('.bss start: ' + hex(bss_start) + ' end: ' + hex(bss_end))
+    print('.stack end: ' + hex(stack_end))
 
 def setup_dynamic_memory_regions():
     # Stack
@@ -117,21 +127,25 @@ def setup_dynamic_memory_regions():
 
 def get_sp():
     sp_str = gdb.execute('print $sp', to_string=True)
-    sp = int(re.search('.*(0x.*)$', sp_str)[1], 16)
+    sp = int(re.search(r'.*(0x.*)$', sp_str)[1], 16)
     #print('current SP: ' + hex(sp))
     return sp;
 
 def breakpoint_handler(event):
     if not isinstance(event, gdb.BreakpointEvent):
+        #gdb.execute('c')
         return
 
     print('EVENT: %s' % (event))
     location = event.breakpoint.location
+    #gdb.execute("c")
+    #return
+
     if location in breakpoints:
         #print('location: ' + location)
         if location == breakpoints[0]:
             is_restore_str = gdb.execute('print checkpoint_svc_restore', to_string=True)
-            is_restore = int(re.search('.*=\s*(.*)$', is_restore_str)[1])
+            is_restore = int(re.search(r'.*=\s*(.*)$', is_restore_str)[1])
             if is_restore == 0:
                 # Get the current stack pointer to dump the stack
                 # Update it so the restore uses the same one
@@ -143,31 +157,35 @@ def breakpoint_handler(event):
                 gdb.execute('p /x registers')
                 print('Registers:')
                 gdb.execute('info reg')
-                print('Allocation table:')
-                gdb.execute('p allocations')
+                #print('Allocation table:')
+                #gdb.execute('p allocations')
                 gdb.execute('c')
             else:
                 dump_memory('after-restore')
                 print('current SP: ' + hex(get_sp()))
                 #gdb.execute('mtb')
 
-                # print the memdiff
-                for memname in memory_dump_ranges:
-                    print('memdiff ' + memname)
-                    diff = memdiff.main(build_bin_filename('after-cp', memname), \
-                            build_bin_filename('after-restore', memname), \
-                            memory_dump_ranges[memname][0])
-                    if diff is not None:
-                        for diff_addr in diff:
-                            sym_cmd = 'info symbol ' + hex(diff_addr)
-                            #print('Sumbol command: ' + sym_cmd)
-                            gdb.execute(sym_cmd)
-                print('Registers array:')
-                gdb.execute('p /x registers')
-                print('Registers:')
-                gdb.execute('info reg')
-                print('Allocation table:')
-                gdb.execute('p allocations')
+                # Skip if the first run
+                if memory_dump_ranges['stack'][0] == 0:
+                    print('No checkpoint memory dump available')
+                else:
+                    # print the memdiff
+                    for memname in memory_dump_ranges:
+                        print('memdiff ' + memname)
+                        diff = memdiff.main(build_bin_filename('after-cp', memname), \
+                                build_bin_filename('after-restore', memname), \
+                                memory_dump_ranges[memname][0])
+                        if diff is not None:
+                            for diff_addr in diff:
+                                sym_cmd = 'info symbol ' + hex(diff_addr)
+                                #print('Sumbol command: ' + sym_cmd)
+                                gdb.execute(sym_cmd)
+                #print('Registers array:')
+                #gdb.execute('p /x registers')
+                #print('Registers:')
+                #gdb.execute('info reg')
+                #print('Allocation table:')
+                #gdb.execute('p allocations')
                 gdb.execute('c')
 
         elif location == breakpoints[1]:
@@ -183,7 +201,7 @@ def breakpoint_handler(event):
             gdb.execute("info reg")
             print('Registers array:')
             gdb.execute('p /x registers')
-            gdb.execute('mtb')
+            #gdb.execute('mtb')
 
             # print the memdiff
             for memname in memory_dump_ranges:
@@ -197,11 +215,11 @@ def breakpoint_handler(event):
                         #print('Sumbol command: ' + sym_cmd)
                         gdb.execute(sym_cmd)
         elif location == breakpoints[2]:
-            gdb.execute("bt")
-            print('Registers:')
-            gdb.execute('info reg')
-            print('Code state:')
-            gdb.execute('p *code_state')
+            #gdb.execute("bt")
+            #print('Registers:')
+            #gdb.execute('info reg')
+            #print('Code state:')
+            #gdb.execute('p *code_state')
             gdb.execute('c')
 
         else:
