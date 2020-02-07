@@ -54,6 +54,14 @@
 #define GDB_LOG_CP      (1)
 
 
+/* Debug options */
+#define CP_CHECKPOINT_DISABLE   (0) // Disable checkpoints
+#define CP_RESTORE_DISABLE      (0) // Disable restores
+#define CP_IGNORE_PENDING       (0) // Checkpoint irregardless of pending status
+#define CP_PRINT_PENDING        (0) // Print pending timing info
+#define CP_PRINT_COMMIT         (0) // Print checkpoint commit timing info
+
+
 /*
  * Used by GDB as watchpoints
  */
@@ -90,6 +98,9 @@ extern uint32_t _estack;
  */
 extern uint32_t _esafestack;
 
+
+/* Checkpoint pending flag */
+volatile int checkpoint_pending = 0;
 
 /* Register checkpoint
  * Registers are copied to `registers[]` in the SVC_Handler ISR
@@ -147,7 +158,7 @@ void nvm_comm_init(void) {
     nv_spi_bus.base.type = &busio_spi_type;
     nv_spi_bus.spi_desc = SPI_M_SERCOM1;
     common_hal_busio_spi_construct(&nv_spi_bus, &pin_PA17, &pin_PA16, &pin_PA19);
-    common_hal_busio_spi_configure(&nv_spi_bus, 2000000, 0, 0, 8);
+    common_hal_busio_spi_configure(&nv_spi_bus, 4000000, 0, 0, 8);
     common_hal_busio_spi_never_reset(&nv_spi_bus);
 
     // Init the WR pin for NV memory controller
@@ -167,7 +178,7 @@ void nvm_comm_init(void) {
 void nvm_reset(void) {
     common_hal_busio_spi_unlock(&nv_spi_bus);
     common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, false);
-    for (int i=0; i<100; i++) {
+    for (int i=0; i<10000; i++) {
         asm volatile("nop");
         asm volatile("nop");
         asm volatile("nop");
@@ -197,6 +208,13 @@ void nvm_write_byte(char src_byte) {
     nvm_write(&src_byte, 1);
 }
 
+void nvm_write_per_byte(char *src, size_t len)
+{
+    for (size_t i=0; i<len; i++) {
+        nvm_write_byte(src[i]);
+    }
+}
+
 void nvm_read(char *dst, size_t len) {
     while (!common_hal_busio_spi_try_lock(&nv_spi_bus)) {}
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
@@ -213,6 +231,12 @@ char nvm_read_byte(void) {
     nvm_read(&dst_byte, 1);
 
     return dst_byte;
+}
+
+void nvm_read_per_byte(char *dst, size_t len) {
+    for (size_t i=0; i<len; i++) {
+        dst[i] = nvm_read_byte();
+    }
 }
 
 
@@ -253,7 +277,7 @@ static inline void checkpoint_registers(void) {
 
         // Send the register size
         registers_size_t register_size = sizeof(registers);
-        nvm_write((char *)&register_size, sizeof(registers_size_t));
+        nvm_write_per_byte((char *)&register_size, sizeof(registers_size_t));
 
         // Read ACK
         resp = nvm_read_byte();
@@ -302,11 +326,11 @@ static void checkpoint_memory_region(char *start, size_t size) {
         return;
     }
 
-    nvm_write((char *)&addr_start, sizeof(segment_size_t));
-    nvm_write((char *)&addr_end, sizeof(segment_size_t));
+    nvm_write_per_byte((char *)&addr_start, sizeof(segment_size_t));
+    nvm_write_per_byte((char *)&addr_end, sizeof(segment_size_t));
 
     // Read the size as ACK
-    nvm_read((char *)&segment_size, sizeof(segment_size_t));
+    nvm_read_per_byte((char *)&segment_size, sizeof(segment_size_t));
 
     if (segment_size != size) {
         printf("Sizes do not match, ACK size: %ld, expected: %ld\r\n",
@@ -387,6 +411,7 @@ extern void common_hal_busio_i2c_restore(void);
 extern void common_hal_digitalio_digitalinout_restore(void);
 extern void common_hal_analogio_analogin_restore(void);
 
+__attribute__((unused))
 __attribute__((noinline))
 static int pyrestore_process(void) {
     segment_size_t addr_start, addr_end, size;
@@ -428,11 +453,11 @@ static int pyrestore_process(void) {
             case CPCMND_SEGMENT:
                 nvm_write_byte(CPCMND_ACK); // send ACK
 
-                nvm_read((char *)&addr_start, sizeof(segment_size_t));
-                nvm_read((char *)&addr_end, sizeof(segment_size_t));
+                nvm_read_per_byte((char *)&addr_start, sizeof(segment_size_t));
+                nvm_read_per_byte((char *)&addr_end, sizeof(segment_size_t));
 
                 size = addr_end - addr_start;
-                nvm_write((char *)&size, sizeof(segment_size_t)); // send size as ACK
+                nvm_write_per_byte((char *)&size, sizeof(segment_size_t)); // send size as ACK
 
                 printf("Restoring segment: start=%p, end=%p, size=%d\r\n", (char *)addr_start, (char *)addr_end, (int)size);
                 // Now the memory segment writeback starts
@@ -444,6 +469,7 @@ static int pyrestore_process(void) {
             default:
                 /* Garbage or unknown command */
                 // Try again to ask for a restore
+                nvm_reset();
                 nvm_write_byte(CPCMND_REQUEST_RESTORE);
                 break;
         }
@@ -479,6 +505,10 @@ int checkpoint_delete(void)
     return 1;
 }
 
+#if CP_RESTORE_DISABLE
+__attribute__((noinline))
+void pyrestore(void) {}
+#else
 /*
  * Because we restore the stack we can't operate on the normal stack
  * So we need to switch the stack to a dedicated one (_esafestack) and restore
@@ -500,9 +530,16 @@ void pyrestore(void) {
     // Restore the old SP
     _set_sp((uint32_t *)pyrestore_return_stack);
 }
+#endif /* CP_RESTORE_DISABLE */
 
 
+uint32_t checkpoint_skipped = 0; // skip count
+uint32_t checkpoint_performed = 0; // checkpoint count
 
+#if CP_CHECKPOINT_DISABLE
+__attribute__((noinline))
+int checkpoint(void) {return 0;}
+#else
 /*
  * Checkpoint to PC
  *  M -> P: UNIQUE_CP_START_KEY     // signal the PC app that we wan't to send a checkpoint
@@ -520,6 +557,13 @@ __attribute__((noinline))
 int checkpoint(void)
 {
     char resp;
+
+    checkpoint_schedule_update();
+
+    if (!checkpoint_is_pending()) {
+        checkpoint_skipped++;
+        return 0;
+    }
 
     nvm_write_byte(CPCMND_REQUEST_CHECKPOINT);
 
@@ -544,5 +588,75 @@ int checkpoint(void)
         nvm_write_byte(CPCMND_CONTINUE);
     }
 
+    /* remove the pending status */
+    checkpoint_clear_pending();
+
+    /* update the checkpoint scheduling */
+    checkpoint_schedule_callback();
+
+    checkpoint_performed++;
+
     return checkpoint_restored();
+}
+#endif /* CP_CHECKPOINT_DISABLE */
+
+
+/* TODO: Disable ISR for this bit */
+void checkpoint_set_pending(void)
+{
+    checkpoint_pending = 1;
+}
+
+void checkpoint_clear_pending(void)
+{
+    checkpoint_pending = 0;
+}
+
+int checkpoint_is_pending(void)
+{
+#if CP_IGNORE_PENDING
+    return 1;
+#else
+    return checkpoint_pending;
+#endif
+}
+
+
+/*
+ * Checkpoint scheduling
+ */
+
+#define CPS_CHECKPOINT_EVERY_MS 500
+extern volatile uint64_t ticks_ms;
+
+volatile uint64_t ticks_ms_last = 0;
+
+// Time based checkpoint schedule
+void checkpoint_schedule_update(void)
+{
+    uint64_t ticks_ms_diff;
+
+    if (checkpoint_is_pending()) {
+        return;
+    }
+
+    ticks_ms_diff = ticks_ms - ticks_ms_last;
+    if (ticks_ms_diff > CPS_CHECKPOINT_EVERY_MS) {
+        checkpoint_set_pending();
+#ifdef CP_PRINT_PENDING
+        printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);
+#endif
+    }
+}
+
+void checkpoint_schedule_callback(void)
+{
+#ifdef CP_PRINT_COMMIT
+    uint64_t ticks_ms_diff;
+
+    ticks_ms_diff = ticks_ms - ticks_ms_last;
+    ticks_ms_last = ticks_ms;
+
+    printf("\r\n[CPS] update ms: %ld [dms: %ld] [skip: %ld] [performed: %ld]\r\n", (long)ticks_ms_last, (long)ticks_ms_diff, checkpoint_skipped, checkpoint_performed);
+#endif
 }
