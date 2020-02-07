@@ -398,9 +398,6 @@ int __attribute__((used)) main(void) {
     // initialise the cpu and peripherals
     safe_mode_t safe_mode = port_init();
 
-    gpio_set_pin_direction(PA10, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PA10, true);
-
     // Turn on LEDs
     init_status_leds();
     // rgb_led_status_init();
@@ -446,6 +443,10 @@ int __attribute__((used)) main(void) {
 
     // Start serial and HID after giving boot.py a chance to tweak behavior.
     serial_init();
+
+
+    gpio_set_pin_direction(PA10, GPIO_DIRECTION_OUT);
+    gpio_set_pin_level(PA10, true);
 
     // Initialize the checkpoint controller
     checkpoint_init();

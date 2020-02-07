@@ -400,6 +400,8 @@ static int pyrestore_process(void) {
 
         switch (c) {
             case CPCMND_CONTINUE:
+                gpio_set_pin_direction(PA09, GPIO_DIRECTION_OUT);
+                gpio_set_pin_level(PA09, true);
                 if (restore_registers_pending) {
 //#if GDB_LOG_CP
 //                    checkpoint_svc_restore = 1;
