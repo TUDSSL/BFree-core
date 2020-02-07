@@ -172,7 +172,7 @@ void nvm_comm_init(void) {
 void nvm_reset(void) {
     common_hal_busio_spi_unlock(&nv_spi_bus);
     common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, false);
-    for (int i=0; i<100; i++) {
+    for (int i=0; i<10000; i++) {
         asm volatile("nop");
         asm volatile("nop");
         asm volatile("nop");
