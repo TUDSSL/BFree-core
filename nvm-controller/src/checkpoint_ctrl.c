@@ -12,6 +12,7 @@ extern volatile uint16_t checkpoint_active_base_idx;
 void process_error(process_state_t state)
 {
     while (1) {
+        UCB1TXBUF = 0x42;
         char byte = mpy_read_byte();
         printf("Next byte: [0x%x]\r\n", byte);
     }
@@ -218,6 +219,11 @@ void process_restore_segment(segment_t *segment)
         // Wrong size
         printf("Restore segment, wrong size. Got %ld expected %ld\r\n",
                 size, segment->meta.size);
+
+        while (1) {
+            mpy_wr_high();
+            mpy_wr_low();
+        }
         return;
     }
 
