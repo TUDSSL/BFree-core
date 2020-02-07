@@ -58,6 +58,8 @@
 #define CP_CHECKPOINT_DISABLE   (0) // Disable checkpoints
 #define CP_RESTORE_DISABLE      (0) // Disable restores
 #define CP_IGNORE_PENDING       (0) // Checkpoint irregardless of pending status
+#define CP_PRINT_PENDING        (0) // Print pending timing info
+#define CP_PRINT_COMMIT         (0) // Print checkpoint commit timing info
 
 
 /*
@@ -639,16 +641,20 @@ void checkpoint_schedule_update(void)
     ticks_ms_diff = ticks_ms - ticks_ms_last;
     if (ticks_ms_diff > CPS_CHECKPOINT_EVERY_MS) {
         checkpoint_set_pending();
+#ifdef CP_PRINT_PENDING
         printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);
+#endif
     }
 }
 
 void checkpoint_schedule_callback(void)
 {
+#ifdef CP_PRINT_COMMIT
     uint64_t ticks_ms_diff;
 
     ticks_ms_diff = ticks_ms - ticks_ms_last;
     ticks_ms_last = ticks_ms;
 
     printf("\r\n[CPS] update ms: %ld [dms: %ld] [skip: %ld] [performed: %ld]\r\n", (long)ticks_ms_last, (long)ticks_ms_diff, checkpoint_skipped, checkpoint_performed);
+#endif
 }
