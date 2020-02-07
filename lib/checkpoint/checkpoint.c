@@ -461,6 +461,7 @@ static int pyrestore_process(void) {
             default:
                 /* Garbage or unknown command */
                 // Try again to ask for a restore
+                nvm_reset();
                 nvm_write_byte(CPCMND_REQUEST_RESTORE);
                 break;
         }
