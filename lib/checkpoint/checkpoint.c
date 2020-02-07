@@ -54,6 +54,11 @@
 #define GDB_LOG_CP      (1)
 
 
+/* Debug options */
+#define CP_CHECKPOINT_DISABLE   (0) // Disable checkpoints
+#define CP_RESTORE_DISABLE      (0) // Disable restores
+
+
 /*
  * Used by GDB as watchpoints
  */
@@ -400,6 +405,7 @@ extern void common_hal_busio_i2c_restore(void);
 extern void common_hal_digitalio_digitalinout_restore(void);
 extern void common_hal_analogio_analogin_restore(void);
 
+__attribute__((unused))
 __attribute__((noinline))
 static int pyrestore_process(void) {
     segment_size_t addr_start, addr_end, size;
@@ -490,6 +496,10 @@ int checkpoint_delete(void)
     return 1;
 }
 
+#if CP_RESTORE_DISABLE
+__attribute__((noinline))
+void pyrestore(void) {}
+#else
 /*
  * Because we restore the stack we can't operate on the normal stack
  * So we need to switch the stack to a dedicated one (_esafestack) and restore
@@ -511,9 +521,14 @@ void pyrestore(void) {
     // Restore the old SP
     _set_sp((uint32_t *)pyrestore_return_stack);
 }
+#endif /* CP_RESTORE_DISABLE */
 
 
 
+#if CP_CHECKPOINT_DISABLE
+__attribute__((noinline))
+int checkpoint(void) {return 0;}
+#else
 /*
  * Checkpoint to PC
  *  M -> P: UNIQUE_CP_START_KEY     // signal the PC app that we wan't to send a checkpoint
@@ -557,3 +572,4 @@ int checkpoint(void)
 
     return checkpoint_restored();
 }
+#endif /* CP_CHECKPOINT_DISABLE */
