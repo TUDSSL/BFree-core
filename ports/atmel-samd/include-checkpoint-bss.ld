@@ -18,6 +18,7 @@
 *(*.current_stack_size)
 *(*.tc_handler) /* timer stuff TODO: need re-init */
 *(*.ticks_ms)
+*(*.ticks_ms_last) /* checkpoint schedule */
 *(*.yasmarang_dat)
 *(*.I2C_Restore)
 *(*.DigitalInOut_Restore)

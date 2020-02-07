@@ -57,6 +57,7 @@
 /* Debug options */
 #define CP_CHECKPOINT_DISABLE   (0) // Disable checkpoints
 #define CP_RESTORE_DISABLE      (0) // Disable restores
+#define CP_IGNORE_PENDING       (0) // Checkpoint irregardless of pending status
 
 
 /*
@@ -95,6 +96,9 @@ extern uint32_t _estack;
  */
 extern uint32_t _esafestack;
 
+
+/* Checkpoint pending flag */
+volatile int checkpoint_pending = 0;
 
 /* Register checkpoint
  * Registers are copied to `registers[]` in the SVC_Handler ISR
@@ -525,6 +529,8 @@ void pyrestore(void) {
 #endif /* CP_RESTORE_DISABLE */
 
 
+uint32_t checkpoint_skipped = 0; // skip count
+uint32_t checkpoint_performed = 0; // checkpoint count
 
 #if CP_CHECKPOINT_DISABLE
 __attribute__((noinline))
@@ -547,6 +553,13 @@ __attribute__((noinline))
 int checkpoint(void)
 {
     char resp;
+
+    checkpoint_schedule_update();
+
+    if (!checkpoint_is_pending()) {
+        checkpoint_skipped++;
+        return 0;
+    }
 
     nvm_write_byte(CPCMND_REQUEST_CHECKPOINT);
 
@@ -571,6 +584,71 @@ int checkpoint(void)
         nvm_write_byte(CPCMND_CONTINUE);
     }
 
+    /* remove the pending status */
+    checkpoint_clear_pending();
+
+    /* update the checkpoint scheduling */
+    checkpoint_schedule_callback();
+
+    checkpoint_performed++;
+
     return checkpoint_restored();
 }
 #endif /* CP_CHECKPOINT_DISABLE */
+
+
+/* TODO: Disable ISR for this bit */
+void checkpoint_set_pending(void)
+{
+    checkpoint_pending = 1;
+}
+
+void checkpoint_clear_pending(void)
+{
+    checkpoint_pending = 0;
+}
+
+int checkpoint_is_pending(void)
+{
+#if CP_IGNORE_PENDING
+    return 1;
+#else
+    return checkpoint_pending;
+#endif
+}
+
+
+/*
+ * Checkpoint scheduling
+ */
+
+#define CPS_CHECKPOINT_EVERY_MS 500
+extern volatile uint64_t ticks_ms;
+
+volatile uint64_t ticks_ms_last = 0;
+
+// Time based checkpoint schedule
+void checkpoint_schedule_update(void)
+{
+    uint64_t ticks_ms_diff;
+
+    if (checkpoint_is_pending()) {
+        return;
+    }
+
+    ticks_ms_diff = ticks_ms - ticks_ms_last;
+    if (ticks_ms_diff > CPS_CHECKPOINT_EVERY_MS) {
+        checkpoint_set_pending();
+        printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);
+    }
+}
+
+void checkpoint_schedule_callback(void)
+{
+    uint64_t ticks_ms_diff;
+
+    ticks_ms_diff = ticks_ms - ticks_ms_last;
+    ticks_ms_last = ticks_ms;
+
+    printf("\r\n[CPS] update ms: %ld [dms: %ld] [skip: %ld] [performed: %ld]\r\n", (long)ticks_ms_last, (long)ticks_ms_diff, checkpoint_skipped, checkpoint_performed);
+}
