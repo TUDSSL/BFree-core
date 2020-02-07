@@ -13,6 +13,7 @@ void nvm_reset(void);
 // For debug
 void nvm_write(char *src, size_t len);
 void nvm_write_byte(char src_byte);
+void nvm_write_per_byte(char *src, size_t len);
 void nvm_read(char *dst, size_t len);
 char nvm_read_byte(void);
 

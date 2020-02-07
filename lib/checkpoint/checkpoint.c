@@ -197,6 +197,13 @@ void nvm_write_byte(char src_byte) {
     nvm_write(&src_byte, 1);
 }
 
+void nvm_write_per_byte(char *src, size_t len)
+{
+    for (size_t i=0; i<len; i++) {
+        nvm_write_byte(src[i]);
+    }
+}
+
 void nvm_read(char *dst, size_t len) {
     while (!common_hal_busio_spi_try_lock(&nv_spi_bus)) {}
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
@@ -213,6 +220,12 @@ char nvm_read_byte(void) {
     nvm_read(&dst_byte, 1);
 
     return dst_byte;
+}
+
+void nvm_read_per_byte(char *dst, size_t len) {
+    for (size_t i=0; i<len; i++) {
+        dst[i] = nvm_read_byte();
+    }
 }
 
 
@@ -253,7 +266,7 @@ static inline void checkpoint_registers(void) {
 
         // Send the register size
         registers_size_t register_size = sizeof(registers);
-        nvm_write((char *)&register_size, sizeof(registers_size_t));
+        nvm_write_per_byte((char *)&register_size, sizeof(registers_size_t));
 
         // Read ACK
         resp = nvm_read_byte();
@@ -302,11 +315,11 @@ static void checkpoint_memory_region(char *start, size_t size) {
         return;
     }
 
-    nvm_write((char *)&addr_start, sizeof(segment_size_t));
-    nvm_write((char *)&addr_end, sizeof(segment_size_t));
+    nvm_write_per_byte((char *)&addr_start, sizeof(segment_size_t));
+    nvm_write_per_byte((char *)&addr_end, sizeof(segment_size_t));
 
     // Read the size as ACK
-    nvm_read((char *)&segment_size, sizeof(segment_size_t));
+    nvm_read_per_byte((char *)&segment_size, sizeof(segment_size_t));
 
     if (segment_size != size) {
         printf("Sizes do not match, ACK size: %ld, expected: %ld\r\n",
@@ -426,11 +439,11 @@ static int pyrestore_process(void) {
             case CPCMND_SEGMENT:
                 nvm_write_byte(CPCMND_ACK); // send ACK
 
-                nvm_read((char *)&addr_start, sizeof(segment_size_t));
-                nvm_read((char *)&addr_end, sizeof(segment_size_t));
+                nvm_read_per_byte((char *)&addr_start, sizeof(segment_size_t));
+                nvm_read_per_byte((char *)&addr_end, sizeof(segment_size_t));
 
                 size = addr_end - addr_start;
-                nvm_write((char *)&size, sizeof(segment_size_t)); // send size as ACK
+                nvm_write_per_byte((char *)&size, sizeof(segment_size_t)); // send size as ACK
 
                 printf("Restoring segment: start=%p, end=%p, size=%d\r\n", (char *)addr_start, (char *)addr_end, (int)size);
                 // Now the memory segment writeback starts
