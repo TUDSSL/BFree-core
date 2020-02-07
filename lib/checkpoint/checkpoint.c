@@ -152,7 +152,7 @@ void nvm_comm_init(void) {
     nv_spi_bus.base.type = &busio_spi_type;
     nv_spi_bus.spi_desc = SPI_M_SERCOM1;
     common_hal_busio_spi_construct(&nv_spi_bus, &pin_PA17, &pin_PA16, &pin_PA19);
-    common_hal_busio_spi_configure(&nv_spi_bus, 2000000, 0, 0, 8);
+    common_hal_busio_spi_configure(&nv_spi_bus, 4000000, 0, 0, 8);
     common_hal_busio_spi_never_reset(&nv_spi_bus);
 
     // Init the WR pin for NV memory controller
