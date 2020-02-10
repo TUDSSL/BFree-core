@@ -85,11 +85,11 @@ STATIC mp_obj_t time_sleep(mp_obj_t seconds_o) {
     if (seconds < 0) {
         mp_raise_ValueError(translate("sleep length must be non-negative"));
     }
-    int sleep = (1000 * seconds)/10;
+    int sleep = 10 * seconds;
     NV_Time.value = 0;
     while (NV_Time.value < sleep){
-        common_hal_time_delay_ms(100 * seconds);
-        NV_Time.value += 10;
+        common_hal_time_delay_ms((1000 * seconds)/sleep);
+        NV_Time.value += 1;
         checkpoint();
     }
     //common_hal_time_delay_ms(1000 * seconds);

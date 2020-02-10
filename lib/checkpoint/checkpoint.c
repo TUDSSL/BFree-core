@@ -626,7 +626,7 @@ int checkpoint_is_pending(void)
  * Checkpoint scheduling
  */
 
-#define CPS_CHECKPOINT_EVERY_MS 500
+#define CPS_CHECKPOINT_EVERY_MS 50
 extern volatile uint64_t ticks_ms;
 
 volatile uint64_t ticks_ms_last = 0;
