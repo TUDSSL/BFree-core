@@ -626,7 +626,6 @@ int checkpoint_is_pending(void)
  * Checkpoint scheduling
  */
 
-#define CPS_CHECKPOINT_EVERY_MS 50
 extern volatile uint64_t ticks_ms;
 
 volatile uint64_t ticks_ms_last = 0;
@@ -641,7 +640,7 @@ void checkpoint_schedule_update(void)
     }
 
     ticks_ms_diff = ticks_ms - ticks_ms_last;
-    if (ticks_ms_diff > CPS_CHECKPOINT_EVERY_MS) {
+    if (ticks_ms_diff > CHECKPOINT_PERIOD_MS) {
         checkpoint_set_pending();
 #ifdef CP_PRINT_PENDING
         printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);

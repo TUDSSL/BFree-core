@@ -2,6 +2,7 @@
 #define MICROPY_INCLUDED_LIB_CHECKPOINT_CHECKPOINT_H
 
 #define CHECKPOINT_SCHEDULE_UPDATE (1)
+#define CHECKPOINT_PERIOD_MS 200
 
 typedef uint32_t segment_size_t;
 typedef uint8_t registers_size_t;
