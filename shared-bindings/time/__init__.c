@@ -65,11 +65,20 @@ STATIC mp_obj_t time_monotonic(void) {
 MP_DEFINE_CONST_FUN_OBJ_0(time_monotonic_obj, time_monotonic);
 
 
-struct nv_time{
-    int value;
-};
+#define NV_TIME_DELAY_CHUNK_SIZE_MS (CHECKPOINT_PERIOD_MS / 4)
+extern volatile uint64_t ticks_ms;
+/*
+ * Checkpoint but track the time spend
+ */
+static inline uint32_t nv_time_checkpoint(void) {
+    volatile uint64_t time_start_cp, time_diff_cp;
 
-struct nv_time NV_Time;
+    time_start_cp = ticks_ms;
+    checkpoint();
+    time_diff_cp = ticks_ms - time_start_cp;
+
+    return time_diff_cp;
+}
 //| .. function:: sleep(seconds)
 //|
 //|   Sleep for a given number of seconds.
@@ -85,13 +94,43 @@ STATIC mp_obj_t time_sleep(mp_obj_t seconds_o) {
     if (seconds < 0) {
         mp_raise_ValueError(translate("sleep length must be non-negative"));
     }
-    int sleep = 10 * seconds;
-    NV_Time.value = 0;
-    while (NV_Time.value < sleep){
-        common_hal_time_delay_ms((1000 * seconds)/sleep);
-        NV_Time.value += 1;
-        checkpoint();
+
+    uint32_t sleep_time_ms = 1000 * seconds;
+    volatile uint32_t number_of_chunks = sleep_time_ms / NV_TIME_DELAY_CHUNK_SIZE_MS;
+    uint32_t remaining_ms = sleep_time_ms % NV_TIME_DELAY_CHUNK_SIZE_MS;
+    uint32_t cp_time;
+
+
+    while (number_of_chunks) {
+        cp_time = nv_time_checkpoint();
+
+        uint32_t skip_chunks = cp_time / NV_TIME_DELAY_CHUNK_SIZE_MS;
+        uint32_t skip_remaining_ms = cp_time % NV_TIME_DELAY_CHUNK_SIZE_MS;
+
+        if (skip_chunks >= number_of_chunks) {
+            // The checkpoint made the delay take longer than intended
+            return mp_const_none;
+        }
+
+        number_of_chunks -= skip_chunks;
+
+        if (skip_remaining_ms == 0) {
+            // The checkpoint time was an exact chunk, so skip the rest
+            continue;
+        }
+
+        // The remaining time in this chunk
+        common_hal_time_delay_ms(NV_TIME_DELAY_CHUNK_SIZE_MS - skip_remaining_ms);
+
+        --number_of_chunks;
     }
+
+    /* The remaining delay */
+    cp_time = nv_time_checkpoint();
+    if (remaining_ms > cp_time) {
+        common_hal_time_delay_ms(remaining_ms - cp_time);
+    }
+
     //common_hal_time_delay_ms(1000 * seconds);
     return mp_const_none;
 }
