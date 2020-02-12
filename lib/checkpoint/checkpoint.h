@@ -3,6 +3,13 @@
 
 #define CHECKPOINT_SCHEDULE_UPDATE (1)
 #define CHECKPOINT_PERIOD_MS 200
+#define CHECKPOINT_PERIOD_MULTIPLIER 5 /* Used in combination with the HYBRID checkpoint scheduler */
+
+/* Select only ONE */
+#define CHECKPOINT_SCHEDULE_TIME_BASED                      (1)
+#define CHECKPOINT_SCHEDULE_CAP_SIGNAL_BASED                (0)
+#define CHECKPOINT_SCHEDULE_CAP_SIGNAL_TIME_HYBRID_BASED    (0)
+
 
 typedef uint32_t segment_size_t;
 typedef uint8_t registers_size_t;
