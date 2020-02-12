@@ -642,6 +642,7 @@ void checkpoint_schedule_update(void)
     ticks_ms_diff = ticks_ms - ticks_ms_last;
     if (ticks_ms_diff > CHECKPOINT_PERIOD_MS) {
         checkpoint_set_pending();
+        ticks_ms_last = ticks_ms;
 #ifdef CP_PRINT_PENDING
         printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);
 #endif
@@ -654,7 +655,6 @@ void checkpoint_schedule_callback(void)
     uint64_t ticks_ms_diff;
 
     ticks_ms_diff = ticks_ms - ticks_ms_last;
-    ticks_ms_last = ticks_ms;
 
     printf("\r\n[CPS] update ms: %ld [dms: %ld] [skip: %ld] [performed: %ld]\r\n", (long)ticks_ms_last, (long)ticks_ms_diff, checkpoint_skipped, checkpoint_performed);
 #endif
