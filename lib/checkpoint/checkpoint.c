@@ -655,7 +655,7 @@ void checkpoint_schedule_update(void)
     if (ticks_ms_diff > CHECKPOINT_PERIOD_MS) {
         checkpoint_set_pending();
         ticks_ms_last = ticks_ms;
-#ifdef CP_PRINT_PENDING
+#if CP_PRINT_PENDING
         printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);
 #endif
     }
@@ -663,7 +663,7 @@ void checkpoint_schedule_update(void)
 
 void checkpoint_schedule_callback(void)
 {
-#ifdef CP_PRINT_COMMIT
+#if CP_PRINT_COMMIT
     uint64_t ticks_ms_diff;
 
     ticks_ms_diff = ticks_ms - ticks_ms_last;
@@ -688,7 +688,7 @@ void checkpoint_schedule_update(void)
     if (common_hal_digitalio_digitalinout_get_value(&pfail_pin_nv) == true) {
         checkpoint_set_pending();
         ticks_ms_last = ticks_ms;
-#ifdef CP_PRINT_PENDING
+#if CP_PRINT_PENDING
         printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);
 #endif
     }
@@ -697,7 +697,7 @@ void checkpoint_schedule_update(void)
 
 void checkpoint_schedule_callback(void)
 {
-#ifdef CP_PRINT_COMMIT
+#if CP_PRINT_COMMIT
     uint64_t ticks_ms_diff;
 
     ticks_ms_diff = ticks_ms - ticks_ms_last;
@@ -741,7 +741,7 @@ void checkpoint_schedule_update(void)
     if (pending) {
         checkpoint_set_pending();
         ticks_ms_last = ticks_ms;
-        #ifdef CP_PRINT_PENDING
+        #if CP_PRINT_PENDING
         printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);
         #endif
     }
@@ -750,7 +750,7 @@ void checkpoint_schedule_update(void)
 
 void checkpoint_schedule_callback(void)
 {
-#ifdef CP_PRINT_COMMIT
+#if CP_PRINT_COMMIT
     uint64_t ticks_ms_diff;
 
     ticks_ms_diff = ticks_ms - ticks_ms_last;
