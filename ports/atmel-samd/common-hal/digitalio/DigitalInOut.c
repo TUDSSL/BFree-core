@@ -192,7 +192,7 @@ void common_hal_digitalio_digitalinout_set_drive_mode(
     DigitalInOut_Restore[(uint8_t)(self->pin->number)].self->open_drain = DRIVE_MODE_OPEN_DRAIN;
 
     // True is implemented differently between modes so reset the value to make
-    // sure it's correct for the new mode.
+    // sure it's correct for  the new mode.
     if (value) {
         common_hal_digitalio_digitalinout_set_value(self, value);
     }
