@@ -97,9 +97,10 @@ CFLAGS += -Os -DNDEBUG
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_SAMD51 -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_CDC_RX_BUFSIZE=256 -DCFG_TUD_MIDI_TX_BUFSIZE=128 -DCFG_TUD_CDC_TX_BUFSIZE=256 -DCFG_TUD_MSC_BUFSIZE=1024
 endif
 
+###DEBUG=1
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
-  CFLAGS += -ggdb
+  CFLAGS += -ggdb -g
   # You may want to disable -flto if it interferes with debugging.
   CFLAGS += -flto -flto-partition=none
   # You may want to enable these flags to make setting breakpoints easier.
