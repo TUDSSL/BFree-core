@@ -176,6 +176,8 @@ SVC_Handler:
 
     /* Enable interrupts: */
     cpsie   i
+    dsb
+    isb
     bx      r0
 
 .size SVC_Handler, .-SVC_Handler
