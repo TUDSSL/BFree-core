@@ -158,14 +158,12 @@ SVC_Handler:
     subs    r1, #16
     msr     msp, r1
 
-    adds    r0, #16
     ldmia   r0!,{r4-r7} // load r8, r9, r10, r11
     mov     r8, r4
     mov     r9, r5
     mov     r10, r6
     mov     r11, r7
 
-    subs    r0, #32
     ldmia   r0!,{r4-r7} // load r4, r5, r6, r7
 
     /*
