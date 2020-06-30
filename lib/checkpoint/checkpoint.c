@@ -11,6 +11,8 @@
 
 #include "supervisor/memory.h"
 
+#include "checkpoint_peripheral_restore.h"
+
 // Intermittent group additions TODO: remove duplicates
 /**
  * Pin mappings.
@@ -143,8 +145,8 @@ digitalio_digitalinout_obj_t pfail_pin_nv;
 void nvm_wait_process(void) {
     // Wait untill the NVM signals it's ready
     while (common_hal_digitalio_digitalinout_get_value(&wr_pin_nv) == false) {
-        filesystem_background();
-        usb_background();
+        //filesystem_background();
+        //usb_background();
     }
 }
 
@@ -162,7 +164,7 @@ void nvm_comm_init(void) {
     nv_spi_bus.base.type = &busio_spi_type;
     nv_spi_bus.spi_desc = SPI_M_SERCOM1;
     common_hal_busio_spi_construct(&nv_spi_bus, &pin_PA17, &pin_PA16, &pin_PA19);
-    common_hal_busio_spi_configure(&nv_spi_bus, 4000000, 0, 0, 8);
+    common_hal_busio_spi_configure(&nv_spi_bus, 2000000, 0, 0, 8);
     common_hal_busio_spi_never_reset(&nv_spi_bus);
 
     // Init the WR pin for NV memory controller
@@ -419,10 +421,6 @@ void checkpoint_memory(void) {
  *(10)      GOTO (1)
  *
  */
-extern void common_hal_busio_i2c_restore(void);
-extern void common_hal_digitalio_digitalinout_restore(void);
-extern void common_hal_analogio_analogin_restore(void);
-
 __attribute__((unused))
 __attribute__((noinline))
 static int pyrestore_process(void) {
@@ -444,9 +442,7 @@ static int pyrestore_process(void) {
 //                    checkpoint_svc_restore = 1;
 //                    gdb_break_me();
 //#endif
-                    common_hal_busio_i2c_restore();
-                    common_hal_analogio_analogin_restore();
-                    common_hal_digitalio_digitalinout_restore();
+                    checkpoint_peripheral_restore();
                     restore_registers();
                 }
 
