@@ -93,7 +93,7 @@ void do_str(const char *src, mp_parse_input_kind_t input_kind) {
 }
 
 void start_mp(supervisor_allocation* heap) {
-    // reset_status_led();
+    reset_status_led();
     autoreload_stop();
 
     background_tasks_reset();
@@ -195,7 +195,7 @@ void cleanup_after_vm(supervisor_allocation* heap) {
     reset_port();
     reset_board_busses();
     reset_board();
-    // reset_status_led();
+    reset_status_led();
 }
 
 bool run_code_py(safe_mode_t safe_mode) {
@@ -391,7 +391,28 @@ int run_repl(void) {
     return exit_code;
 }
 
-#define CLEAR_NVM_USER_RESET (1) // TODO: Move to config
+#define MICROPY_DISABLE_NEOPIXEL (1)
+
+// We disabled it, it can't take low volage rises
+#if !defined(MICROPY_HW_NEOPIXEL) && MICROPY_DISABLE_NEOPIXEL
+static uint8_t status_neopixel_color[3];
+static digitalio_digitalinout_obj_t status_neopixel;
+#include "shared-bindings/neopixel_write/__init__.h"
+
+void rgb_led_status_clear(void) {
+    common_hal_digitalio_digitalinout_construct(&status_neopixel, &pin_PA30);
+    common_hal_digitalio_digitalinout_switch_to_output(&status_neopixel, false, DRIVE_MODE_PUSH_PULL);
+    status_neopixel_color[0] = 0;
+    status_neopixel_color[1] = 0;
+    status_neopixel_color[2] = 0;
+    common_hal_neopixel_write(&status_neopixel, status_neopixel_color, 3);
+    common_hal_neopixel_write(&status_neopixel, status_neopixel_color, 3);
+}
+#else
+#define rgb_led_status_clear()
+#endif
+
+#define CLEAR_NVM_USER_RESET (0) // TODO: Move to config
 int __attribute__((used)) main(void) {
     memory_init();
 
@@ -400,7 +421,8 @@ int __attribute__((used)) main(void) {
 
     // Turn on LEDs
     init_status_leds();
-    // rgb_led_status_init();
+    rgb_led_status_init();
+    rgb_led_status_clear();
 
     // Wait briefly to give a reset window where we'll enter safe mode after the reset.
     if (safe_mode == NO_SAFE_MODE) {
@@ -408,17 +430,17 @@ int __attribute__((used)) main(void) {
     }
 
     // Clear nvm when the connection is made
-    bool clear_nvm = true;
+    //bool clear_nvm = true;
     if (safe_mode == USER_RESET) {
-        clear_nvm = false;
+        //clear_nvm = false;
         safe_mode = NO_SAFE_MODE;
     } else if (safe_mode == NO_SAFE_MODE) {
-        clear_nvm = false;
+        //clear_nvm = false;
     } else if (safe_mode == HARD_CRASH) {
         safe_mode = NO_SAFE_MODE;
-        clear_nvm = true;
+        //clear_nvm = true;
     } else if (safe_mode == BROWNOUT) {
-        clear_nvm = false;
+        //clear_nvm = false;
         safe_mode = NO_SAFE_MODE;
     }
 
@@ -444,9 +466,8 @@ int __attribute__((used)) main(void) {
     // Start serial and HID after giving boot.py a chance to tweak behavior.
     serial_init();
 
-
-    gpio_set_pin_direction(PA10, GPIO_DIRECTION_OUT);
-    gpio_set_pin_level(PA10, true);
+    //gpio_set_pin_direction(PA10, GPIO_DIRECTION_OUT);
+    //gpio_set_pin_level(PA10, true);
 
     // Initialize the checkpoint controller
     checkpoint_init();
