@@ -110,6 +110,7 @@ void checkpoint_commit(void)
     } else {
         checkpoint_active_base_idx = 0;
     }
+    //__asm__ volatile("": : :"memory"); // Memory barrier TODO: Need this?
 
     checkpoint_update();
 }

@@ -28,6 +28,9 @@ int mpy_read_dma_blocking(char *dst, size_t size);
 #define RD_PIN BIT6
 #define RST_PIN RD_PIN
 
+/* Pin connected to a checkpoint clear button (button press pulls low) */
+#define CHECKPOINT_CLR_PIN  BIT6 // P4.6
+
 /* Use pin interrupt to reset the board (not connected to the actual reset pin) */
 #define RST_PIN_ISR (0)
 
@@ -89,6 +92,17 @@ static inline char mpy_read_byte(void)
     UCB1IFG &= ~UCTXIFG;
 
     return data;
+}
+
+/*
+ * return  1 = button pressed, 0 = button not pressed
+ */
+static inline int mpy_checkpoint_clear_state(void)
+{
+    if (P4IN & CHECKPOINT_CLR_PIN) {
+        return 0;
+    }
+    return 1;
 }
 
 #endif /* MPY_COMM_H__ */

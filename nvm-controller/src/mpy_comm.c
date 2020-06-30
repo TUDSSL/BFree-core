@@ -10,6 +10,11 @@
 
 void mpy_comm_init(void)
 {
+    /* Initialize the checkpoint clear button */
+    P4DIR &= ~CHECKPOINT_CLR_PIN; // Set button as input
+    P4OUT |= CHECKPOINT_CLR_PIN; // Set to pullup
+    P4REN |= CHECKPOINT_CLR_PIN; // Enable pullup
+
     /* Select SPI functionality for the pins */
     P5SEL1 &= ~(SPI_MOSI | SPI_MISO | SPI_SCLK);
     P5SEL0 |= (SPI_MOSI | SPI_MISO | SPI_SCLK);

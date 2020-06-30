@@ -25,6 +25,12 @@ int main(void)
     //printf("Waiting for sync\r\n");
     //process_reboot_sync();
 
+    // If the shield button is pressed during boot we erase the checkpoint
+    if (mpy_checkpoint_clear_state() == 1) {
+        DBG_PRINT("Deleting checkpoint (button pressed)\r\n");
+        process_delete_checkpoint();
+    }
+
     DBG_PRINT("Start communication\r\n");
     mpy_comm_start();
     while (1) {
