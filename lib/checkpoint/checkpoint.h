@@ -20,6 +20,11 @@ void pyrestore(void);
 int checkpoint(void);
 void nvm_reset(void);
 
+// For bindings
+void checkpoint_disable(void);
+void checkpoint_enable(void);
+bool checkpoint_enabled(void);
+
 void checkpoint_set_pending(void);
 void checkpoint_clear_pending(void);
 int checkpoint_is_pending(void);

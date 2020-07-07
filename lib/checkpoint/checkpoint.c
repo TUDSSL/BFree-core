@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include "py/mpconfig.h"
 
@@ -103,6 +104,10 @@ extern uint32_t _esafestack;
 
 /* Checkpoint pending flag */
 volatile int checkpoint_pending = 0;
+
+/* Checkpoint disabled flag */
+volatile bool checkpoint_disabled = false;
+
 
 /* Register checkpoint
  * Registers are copied to `registers[]` in the SVC_Handler ISR
@@ -494,6 +499,23 @@ void checkpoint_init(void)
     nvm_comm_init();
     nvm_reset();
     NVIC_SetPriority(SVCall_IRQn, 0xff); /* Lowest possible priority */
+
+    checkpoint_enable();
+}
+
+void checkpoint_disable(void)
+{
+    checkpoint_disabled = true;
+}
+
+void checkpoint_enable(void)
+{
+    checkpoint_disabled = false;
+}
+
+bool checkpoint_enabled(void)
+{
+    return !checkpoint_disabled;
 }
 
 /*
@@ -565,6 +587,10 @@ __attribute__((noinline))
 int checkpoint(void)
 {
     char resp;
+
+    if (!checkpoint_enabled()) {
+        return 0;
+    }
 
     checkpoint_schedule_update();
 

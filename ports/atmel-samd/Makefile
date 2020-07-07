@@ -281,6 +281,8 @@ SRC_SHARED_MODULE += wiznet/__init__.c wiznet/wiznet5k.c
 endif
 endif
 
+SRC_SHARED_MODULE += checkpoint/__init__.c
+
 # The smallest SAMD51 packages don't have I2S. Everything else does.
 ifeq ($(CIRCUITPY_AUDIOBUSIO),1)
 SRC_C += peripherals/samd/i2s.c peripherals/samd/$(CHIP_FAMILY)/i2s.c
