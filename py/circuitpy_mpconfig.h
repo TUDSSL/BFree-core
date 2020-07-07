@@ -551,6 +551,14 @@ extern const struct _mp_obj_module_t checkpoint_module;
 //#define CHECKPOINT_MODULE
 //#endif
 
+#define CIRCUITPY_EPD_TEMPERATURE (1)
+#if CIRCUITPY_EPD_TEMPERATURE
+extern const struct _mp_obj_module_t epd_temperature_module;
+#define EPD_TEMPERATURE_MODULE      { MP_OBJ_NEW_QSTR(MP_QSTR_epd_temperature), (mp_obj_t)&epd_temperature_module },
+#else
+#define EPD_TEMPERATURE_MODULE
+#endif
+
 // Define certain native modules with weak links so they can be replaced with Python
 // implementations. This list may grow over time.
 #define MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS \
@@ -612,6 +620,7 @@ extern const struct _mp_obj_module_t checkpoint_module;
     USB_MIDI_MODULE \
     USTACK_MODULE \
     CHECKPOINT_MODULE \
+    EPD_TEMPERATURE_MODULE \
 
 // If weak links are enabled, just include strong links in the main list of modules,
 // and also include the underscore alternate names.

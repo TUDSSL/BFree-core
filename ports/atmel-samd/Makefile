@@ -283,6 +283,13 @@ endif
 
 SRC_SHARED_MODULE += checkpoint/__init__.c
 
+CIRCUITPY_EPD_TEMPERATURE=1
+ifeq ($(CIRCUITPY_EPD_TEMPERATURE),1)
+SRC_SHARED_MODULE += epd_temperature/__init__.c
+SRC_C += lib/epd_temperature/epd.c \
+		 lib/epd_temperature/epd_temp.c
+endif
+
 # The smallest SAMD51 packages don't have I2S. Everything else does.
 ifeq ($(CIRCUITPY_AUDIOBUSIO),1)
 SRC_C += peripherals/samd/i2s.c peripherals/samd/$(CHIP_FAMILY)/i2s.c
