@@ -21,6 +21,7 @@
 *(*.ticks_ms_last) /* checkpoint schedule */
 *(*.yasmarang_dat)
 *(*.I2C_Restore)
+*(*.SPI_Restore)
 *(*.DigitalInOut_Restore)
 *(*.AnalogIn_Restore)
 *(*.NV_Time)
