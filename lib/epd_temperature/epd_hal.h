@@ -65,7 +65,7 @@ static void epd_comm_init(void) {
 
     // BUSY pin (INPUT)
     common_hal_digitalio_digitalinout_construct(&epd_busy_pin, EPD_BUSY_PIN);
-    common_hal_digitalio_digitalinout_switch_to_input(&epd_busy_pin, PULL_DOWN);
+    common_hal_digitalio_digitalinout_switch_to_input(&epd_busy_pin, PULL_NONE);
     common_hal_digitalio_digitalinout_never_reset(&epd_busy_pin);
 
     // SPI
@@ -114,7 +114,20 @@ static inline void epd_delay_ms(uint32_t ms) {
 static inline void epd_reset(void) {
     epd_rst_high();
     epd_rst_low();
-    epd_delay_ms(10);
+
+    //epd_delay_ms(10); // TODO: Why does delay act strange?
+    for (int i=0; i<50000; i++) {
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+        asm volatile("nop");
+    }
     epd_rst_high();
 }
 
