@@ -255,13 +255,17 @@ void common_hal_busio_spi_restore(void) {
 void common_hal_busio_spi_construct(busio_spi_obj_t *self,
         const mcu_pin_obj_t * clock, const mcu_pin_obj_t * mosi,
         const mcu_pin_obj_t * miso) {
-    SPI_Restore.active = true;
-    SPI_Restore.self = self;
-    SPI_Restore.clock = clock;
-    SPI_Restore.mosi = mosi;
-    SPI_Restore.miso = miso;
+    // Do not log if the SPI is the internal flash or the NVM memory controller (BFree shield)
+    if (mosi != &pin_PB22 && mosi != &pin_PA16) {
+        SPI_Restore.active = true;
+        SPI_Restore.self = self;
+        SPI_Restore.clock = clock;
+        SPI_Restore.mosi = mosi;
+        SPI_Restore.miso = miso;
+    }
     _common_hal_busio_spi_construct(self, clock, mosi, miso);
 }
+
 // END RESTORE CODE
 
 void common_hal_busio_spi_never_reset(busio_spi_obj_t *self) {
