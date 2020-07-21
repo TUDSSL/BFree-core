@@ -13,9 +13,9 @@ void portConfig(void)
     //P2DIR = 0xFF;
     //P2REN = 0;
 
-    //P3DIR = 0;
-    //P3REN = 0xFF;
-    //P3OUT = 0;
+    P3DIR = 0;
+    P3REN = 0xFF;
+    P3OUT = 0;
 
     //P4DIR = 0;
     //P4REN = 0xFF;
