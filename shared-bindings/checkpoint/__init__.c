@@ -45,10 +45,57 @@ STATIC mp_obj_t checkpointruntime_enable(void) {
 MP_DEFINE_CONST_FUN_OBJ_0(checkpointruntime_enable_obj, checkpointruntime_enable);
 
 
+//
+// Checkpoint strategy configuration
+//
+extern struct checkpoint_config checkpoint_cfg;
+
+STATIC mp_obj_t checkpointruntime_set_schedule(mp_obj_t cp_schedule) {
+    int sched = mp_obj_get_int(cp_schedule);
+
+    switch (sched) {
+        case CHECKPOINT_SCHEDULE_TIME:
+        case CHECKPOINT_SCHEDULE_TRIGGER:
+        case CHECKPOINT_SCHEDULE_HYBRID:
+            checkpoint_cfg.checkpoint_schedule = sched;
+            break;
+        default:
+            mp_raise_ValueError(NULL);
+    }
+
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(checkpointruntime_set_schedule_obj, checkpointruntime_set_schedule);
+
+STATIC mp_obj_t checkpointruntime_set_period(mp_obj_t period_ms) {
+    int p = mp_obj_get_int(period_ms);
+    if (p < 0) {
+        mp_raise_ValueError(NULL);
+    }
+    checkpoint_cfg.cps_period_ms = p;
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(checkpointruntime_set_period_obj, checkpointruntime_set_period);
+
+STATIC mp_obj_t checkpointruntime_set_hybrid_period(mp_obj_t hybrid_period_ms) {
+    int p = mp_obj_get_int(hybrid_period_ms);
+    if (p < 0) {
+        mp_raise_ValueError(NULL);
+    }
+    checkpoint_cfg.cps_hybrid_period_ms = p;
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_1(checkpointruntime_set_hybrid_period_obj, checkpointruntime_set_hybrid_period);
+
+
 STATIC const mp_rom_map_elem_t checkpoint_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_checkpoint) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_disable),  MP_ROM_PTR(&checkpointruntime_disable_obj) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_enable),  MP_ROM_PTR(&checkpointruntime_enable_obj) },
+
+    { MP_OBJ_NEW_QSTR(MP_QSTR_set_schedule),  MP_ROM_PTR(&checkpointruntime_set_schedule_obj) },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_set_period),  MP_ROM_PTR(&checkpointruntime_set_period_obj) },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_set_hybrid_period),  MP_ROM_PTR(&checkpointruntime_set_hybrid_period_obj) },
 
 };
 

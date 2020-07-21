@@ -143,9 +143,7 @@ digitalio_digitalinout_obj_t cs_pin_nv;
 digitalio_digitalinout_obj_t wr_pin_nv;
 digitalio_digitalinout_obj_t rst_pin_nv;
 
-#if (CHECKPOINT_SCHEDULE_CAP_SIGNAL_BASED || CHECKPOINT_SCHEDULE_CAP_SIGNAL_TIME_HYBRID_BASED)
 digitalio_digitalinout_obj_t pfail_pin_nv;
-#endif
 
 void nvm_wait_process(void) {
     // Wait untill the NVM signals it's ready
@@ -185,13 +183,11 @@ void nvm_comm_init(void) {
     common_hal_digitalio_digitalinout_never_reset(&rst_pin_nv);
     common_hal_digitalio_digitalinout_set_value(&rst_pin_nv, true);
 
-    #if (CHECKPOINT_SCHEDULE_CAP_SIGNAL_BASED || CHECKPOINT_SCHEDULE_CAP_SIGNAL_TIME_HYBRID_BASED)
     /* Initialize the CP/2 capacitro warning signal pin */
     pfail_pin_nv.base.type = &digitalio_digitalinout_type;
     common_hal_digitalio_digitalinout_construct(&pfail_pin_nv, &pin_PA20);
-    common_hal_digitalio_digitalinout_switch_to_input(&pfail_pin_nv, PULL_DOWN);
+    common_hal_digitalio_digitalinout_switch_to_input(&pfail_pin_nv, PULL_NONE);
     common_hal_digitalio_digitalinout_never_reset(&pfail_pin_nv);
-    #endif
 }
 
 void nvm_reset(void) {
@@ -213,7 +209,7 @@ void nvm_reset(void) {
 }
 
 void nvm_write(char *src, size_t len) {
-    while (!common_hal_busio_spi_try_lock(&nv_spi_bus));
+    //while (!common_hal_busio_spi_try_lock(&nv_spi_bus));
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
 
     nvm_wait_process();
@@ -235,7 +231,7 @@ void nvm_write_per_byte(char *src, size_t len)
 }
 
 void nvm_read(char *dst, size_t len) {
-    while (!common_hal_busio_spi_try_lock(&nv_spi_bus)) {}
+    //while (!common_hal_busio_spi_try_lock(&nv_spi_bus)) {}
     common_hal_digitalio_digitalinout_set_value(&cs_pin_nv, false);
 
     nvm_wait_process();
@@ -566,6 +562,8 @@ void pyrestore(void) {
 uint32_t checkpoint_skipped = 0; // skip count
 uint32_t checkpoint_performed = 0; // checkpoint count
 
+static inline void checkpoint_schedule_callback(void);
+
 #if CP_CHECKPOINT_DISABLE
 __attribute__((noinline))
 int checkpoint(void) {return 0;}
@@ -659,126 +657,76 @@ int checkpoint_is_pending(void)
 /*
  * Checkpoint scheduling
  */
-#if CHECKPOINT_SCHEDULE_TIME_BASED
 extern volatile uint64_t ticks_ms;
+#define get_time_ms() (ticks_ms)
 
-volatile uint64_t ticks_ms_last = 0;
+struct checkpoint_config checkpoint_cfg = CHECKPOINT_CONFIG_DEFAULT;
+uint64_t cps_checkpoint_last_ms = 0;    // Timestamp of the last checkpoint
 
-// Time based checkpoint schedule
-void checkpoint_schedule_update(void)
-{
+static inline void checkpoint_schedule_callback(void) {
+#if CP_PRINT_COMMIT
     uint64_t ticks_ms_diff;
 
-    if (checkpoint_is_pending()) {
-        return;
-    }
+    ticks_ms_diff = get_time_ms() - cps_checkpoint_last_ms;
 
-    ticks_ms_diff = ticks_ms - ticks_ms_last;
-    if (ticks_ms_diff > CHECKPOINT_PERIOD_MS) {
-        checkpoint_set_pending();
-        ticks_ms_last = ticks_ms;
+    printf("\r\n[CPS] update ms: %ld [dms: %ld] [skip: %ld] [performed: %ld]\n",
+            (long)cps_checkpoint_last_ms, (long)ticks_ms_diff,
+            checkpoint_skipped, checkpoint_performed);
+#endif
+}
+
+static inline void cps_print_pending(uint64_t timestamp) {
 #if CP_PRINT_PENDING
-        printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);
+    printf("[CPS] set pending ms: %ld\n", (long)timestamp);
 #endif
+}
+
+static void checkpoint_schedule_update_time(const uint64_t period_ms) {
+    uint64_t time_ms, time_ms_diff;
+
+    time_ms = get_time_ms();
+    time_ms_diff = time_ms - cps_checkpoint_last_ms;
+
+    if (time_ms_diff >= period_ms) {
+        checkpoint_set_pending();
+        cps_checkpoint_last_ms = time_ms;
+        cps_print_pending(time_ms);
     }
 }
 
-void checkpoint_schedule_callback(void)
-{
-#if CP_PRINT_COMMIT
-    uint64_t ticks_ms_diff;
-
-    ticks_ms_diff = ticks_ms - ticks_ms_last;
-
-    printf("\r\n[CPS] update ms: %ld [dms: %ld] [skip: %ld] [performed: %ld]\r\n", (long)ticks_ms_last, (long)ticks_ms_diff, checkpoint_skipped, checkpoint_performed);
-#endif
+static void checkpoint_schedule_update_trigger(void) {
+    // If the threshold voltage is reached PFAIL is high
+    if (common_hal_digitalio_digitalinout_get_value(&pfail_pin_nv) == true) {
+        checkpoint_schedule_update_time(checkpoint_cfg.cps_period_ms);
+    }
 }
 
-#elif CHECKPOINT_SCHEDULE_CAP_SIGNAL_BASED
-extern volatile uint64_t ticks_ms;
+static void checkpoint_schedule_update_hybrid(void) {
+    if (common_hal_digitalio_digitalinout_get_value(&pfail_pin_nv) == true) {
+        checkpoint_schedule_update_time(checkpoint_cfg.cps_period_ms);
+    } else {
+        checkpoint_schedule_update_time(checkpoint_cfg.cps_hybrid_period_ms);
+    }
+}
 
-volatile uint64_t ticks_ms_last = 0;
-
-// Time based checkpoint schedule
 void checkpoint_schedule_update(void)
 {
     if (checkpoint_is_pending()) {
         return;
     }
 
-    // If the capacitor signal PFAIL is high
-    if (common_hal_digitalio_digitalinout_get_value(&pfail_pin_nv) == true) {
-        checkpoint_set_pending();
-        ticks_ms_last = ticks_ms;
-#if CP_PRINT_PENDING
-        printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);
-#endif
+    switch (checkpoint_cfg.checkpoint_schedule) {
+        case CHECKPOINT_SCHEDULE_TIME:
+            checkpoint_schedule_update_time(checkpoint_cfg.cps_period_ms);
+            break;
+        case CHECKPOINT_SCHEDULE_TRIGGER:
+            checkpoint_schedule_update_trigger();
+            break;
+        case CHECKPOINT_SCHEDULE_HYBRID:
+            checkpoint_schedule_update_hybrid();
+            break;
+        default:
+            printf("[CPS] unknown checkpoint schedule");
     }
-
 }
 
-void checkpoint_schedule_callback(void)
-{
-#if CP_PRINT_COMMIT
-    uint64_t ticks_ms_diff;
-
-    ticks_ms_diff = ticks_ms - ticks_ms_last;
-
-    printf("\r\n[CPS] update ms: %ld [dms: %ld] [skip: %ld] [performed: %ld]\r\n", (long)ticks_ms_last, (long)ticks_ms_diff, checkpoint_skipped, checkpoint_performed);
-#endif
-}
-
-
-#elif CHECKPOINT_SCHEDULE_CAP_SIGNAL_TIME_HYBRID_BASED
-/* Checkpoint frequency is 4x slower when signal is low
- */
-extern volatile uint64_t ticks_ms;
-
-volatile uint64_t ticks_ms_last = 0;
-
-// Time based checkpoint schedule
-void checkpoint_schedule_update(void)
-{
-    static int performed_checkpoint = 0;
-    int pending = 0;
-
-    if (checkpoint_is_pending()) {
-        return;
-    }
-
-    uint64_t ticks_ms_diff = ticks_ms - ticks_ms_last;
-
-    // If the capacitor signal PFAIL is high
-    if (common_hal_digitalio_digitalinout_get_value(&pfail_pin_nv) == true) {
-        if (performed_checkpoint == 0) {
-            pending = 1;
-            performed_checkpoint = 1;
-        } else if (ticks_ms_diff > CHECKPOINT_PERIOD_MS) {
-            pending = 1;
-        }
-    } else if (ticks_ms_diff > (CHECKPOINT_PERIOD_MS * CHECKPOINT_PERIOD_MULTIPLIER)) {
-        pending = 1;
-    }
-
-    if (pending) {
-        checkpoint_set_pending();
-        ticks_ms_last = ticks_ms;
-        #if CP_PRINT_PENDING
-        printf("\r\n[CPS] set pending ms: %ld\r\n", (long)ticks_ms);
-        #endif
-    }
-
-}
-
-void checkpoint_schedule_callback(void)
-{
-#if CP_PRINT_COMMIT
-    uint64_t ticks_ms_diff;
-
-    ticks_ms_diff = ticks_ms - ticks_ms_last;
-
-    printf("\r\n[CPS] update ms: %ld [dms: %ld] [skip: %ld] [performed: %ld]\r\n", (long)ticks_ms_last, (long)ticks_ms_diff, checkpoint_skipped, checkpoint_performed);
-#endif
-}
-
-#endif

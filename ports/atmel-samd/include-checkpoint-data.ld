@@ -4,3 +4,4 @@
 *(*.yasmarang_n)
 *(*.yasmarang_pad)
 /* *(*.pyexec_mode_kind) NB. DO NOT ADD THIS ONE <<< */
+*(*.checkpoint_cfg)

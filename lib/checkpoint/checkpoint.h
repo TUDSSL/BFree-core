@@ -3,13 +3,25 @@
 
 #define CHECKPOINT_SCHEDULE_UPDATE (1)
 #define CHECKPOINT_PERIOD_MS 200
-#define CHECKPOINT_PERIOD_MULTIPLIER 5 /* Used in combination with the HYBRID checkpoint scheduler */
+#define CHECKPOINT_HYBRID_PERIOD_MS 1000
 
-/* Select only ONE */
-#define CHECKPOINT_SCHEDULE_TIME_BASED                      (1)
-#define CHECKPOINT_SCHEDULE_CAP_SIGNAL_BASED                (0)
-#define CHECKPOINT_SCHEDULE_CAP_SIGNAL_TIME_HYBRID_BASED    (0)
+enum checkpoint_schedule {
+    CHECKPOINT_SCHEDULE_TIME,
+    CHECKPOINT_SCHEDULE_TRIGGER,
+    CHECKPOINT_SCHEDULE_HYBRID
+};
 
+struct checkpoint_config {
+    enum checkpoint_schedule checkpoint_schedule;
+    uint64_t cps_period_ms;             // Period of the checkpoints
+    uint64_t cps_hybrid_period_ms;      // Period of the checkpoints before the trigger point
+};
+
+#define CHECKPOINT_CONFIG_DEFAULT { \
+    .checkpoint_schedule = CHECKPOINT_SCHEDULE_TIME, \
+    .cps_period_ms = CHECKPOINT_PERIOD_MS, \
+    .cps_hybrid_period_ms = CHECKPOINT_HYBRID_PERIOD_MS, \
+}
 
 typedef uint32_t segment_size_t;
 typedef uint8_t registers_size_t;
@@ -35,7 +47,6 @@ static inline void checkpoint_force(void) {
 }
 
 void checkpoint_schedule_update(void);
-void checkpoint_schedule_callback(void);
 
 // For debug
 void nvm_write(char *src, size_t len);
