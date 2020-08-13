@@ -44,8 +44,6 @@
 #define TRACE(ip)
 #endif
 
-volatile int break_me_2 = 1;
-
 // Value stack grows up (this makes it incompatible with native C stack, but
 // makes sure that arguments to functions are in natural order arg1..argN
 // (Python semantics mandates left-to-right evaluation order, including for
@@ -201,13 +199,13 @@ outer_dispatch_loop:
             // loop to execute byte code
             for (;;) {
 #ifdef CHECKPOINT_START_BC_LOOP
-                if (checkpoint() == 1) {
-                    // Restore
-                    //printf("*******RESTORED*******\r\n");
-                } else {
-                    //printf("*******CHECKPOINT*******\r\n");
-                }
-                break_me_2 = 42;
+                //if (checkpoint() == 1) {
+                //    // Restore
+                //    //printf("*******RESTORED*******\r\n");
+                //} else {
+                //    //printf("*******CHECKPOINT*******\r\n");
+                //}
+                checkpoint();
 #endif
 
 dispatch_loop:

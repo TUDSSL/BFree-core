@@ -31,3 +31,7 @@
 *(*.mp_showbc_code_start)
 *(*.mp_showbc_const_table)
 *(*.cps_checkpoint_last_ms)
+*(*.checkpoint_skipped)
+*(*.checkpoint_performed)
+*(*.checkpoint_restore_performed)
+*(*.epd_performed_one_time_construct)

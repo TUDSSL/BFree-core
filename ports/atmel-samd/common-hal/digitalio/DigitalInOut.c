@@ -36,6 +36,8 @@
 #include "shared-bindings/digitalio/DigitalInOut.h"
 #include "supervisor/shared/translate.h"
 
+#include "lib/checkpoint/checkpoint.h"
+
 digitalinout_result_t _common_hal_digitalio_digitalinout_construct(
         digitalio_digitalinout_obj_t* self, const mcu_pin_obj_t* pin) {
     claim_pin(pin);
@@ -65,19 +67,40 @@ void common_hal_digitalio_digitalinout_restore(void) {
     int i = 0;
     for (i = 0; i < 32; i++) {
         r = &DigitalInOut_Restore[i];
+
+        if (r->active == false) {
+            continue;
+        }
+
         // PA06, PA07, PA16, PA17, PA18, PA19, PA20, PA21 are used by checkpointing protocol
         // need to exclude them here since they are already handled in checkpoint.c
-        if (i != 6 && i != 7 && i != 16 && i != 17 && i != 18 && i != 19 && i != 20 && i != 21 && r->active) { 
-            bool output = r->self->output;
-            bool open_drain = r->self->open_drain;
-            _common_hal_digitalio_digitalinout_construct(r->self, r->pin);
-            if(output == true) {
-                common_hal_digitalio_digitalinout_switch_to_output(r->self, r->value, open_drain);
-                common_hal_digitalio_digitalinout_set_value(r->self, r->value);
-            }
-            else {
-                common_hal_digitalio_digitalinout_switch_to_input(r->self, r->pull);
-            }
+        switch (i) {
+            case 6:
+            case 7:
+            case 16:
+            case 17:
+            case 18:
+            case 19:
+            case 20:
+            case 21:
+            #if CHECKPOINT_BENCHMARK // Exclude PA08 and PA15 if we are in benchmark mode
+            case 8:
+            case 15:
+            #endif
+                continue;
+            default:
+                break;
+        }
+
+        bool output = r->self->output;
+        bool open_drain = r->self->open_drain;
+        _common_hal_digitalio_digitalinout_construct(r->self, r->pin);
+        if(output == true) {
+            common_hal_digitalio_digitalinout_switch_to_output(r->self, r->value, open_drain);
+            common_hal_digitalio_digitalinout_set_value(r->self, r->value);
+        }
+        else {
+            common_hal_digitalio_digitalinout_switch_to_input(r->self, r->pull);
         }
     }
 }
@@ -209,7 +232,7 @@ digitalio_drive_mode_t common_hal_digitalio_digitalinout_get_drive_mode(
 
 void common_hal_digitalio_digitalinout_set_pull(
         digitalio_digitalinout_obj_t* self, digitalio_pull_t pull) {
-    
+
     DigitalInOut_Restore[(uint8_t)(self->pin->number)].pull = pull;
 
     enum gpio_pull_mode asf_pull = GPIO_PULL_OFF;
