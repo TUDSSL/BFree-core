@@ -36,13 +36,26 @@ STATIC mp_obj_t checkpointruntime_disable(void) {
     checkpoint_disable();
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_0(checkpointruntime_disable_obj, checkpointruntime_disable);
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(checkpointruntime_disable_obj, checkpointruntime_disable);
 
 STATIC mp_obj_t checkpointruntime_enable(void) {
     checkpoint_enable();
     return mp_const_none;
 }
-MP_DEFINE_CONST_FUN_OBJ_0(checkpointruntime_enable_obj, checkpointruntime_enable);
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(checkpointruntime_enable_obj, checkpointruntime_enable);
+
+
+extern uint32_t checkpoint_performed;
+STATIC mp_obj_t checkpointruntime_checkpoint_count(void) {
+    return mp_obj_new_int(checkpoint_performed);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(checkpointruntime_checkpoint_count_obj, checkpointruntime_checkpoint_count);
+
+extern uint32_t checkpoint_restore_performed;
+STATIC mp_obj_t checkpointruntime_restore_count(void) {
+    return mp_obj_new_int(checkpoint_restore_performed);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_0(checkpointruntime_restore_count_obj, checkpointruntime_restore_count);
 
 
 //
@@ -92,6 +105,9 @@ STATIC const mp_rom_map_elem_t checkpoint_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_checkpoint) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_disable),  MP_ROM_PTR(&checkpointruntime_disable_obj) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_enable),  MP_ROM_PTR(&checkpointruntime_enable_obj) },
+
+    { MP_OBJ_NEW_QSTR(MP_QSTR_checkpoint_count),  MP_ROM_PTR(&checkpointruntime_checkpoint_count_obj) },
+    { MP_OBJ_NEW_QSTR(MP_QSTR_restore_count),  MP_ROM_PTR(&checkpointruntime_restore_count_obj) },
 
     { MP_OBJ_NEW_QSTR(MP_QSTR_set_schedule),  MP_ROM_PTR(&checkpointruntime_set_schedule_obj) },
     { MP_OBJ_NEW_QSTR(MP_QSTR_set_period),  MP_ROM_PTR(&checkpointruntime_set_period_obj) },

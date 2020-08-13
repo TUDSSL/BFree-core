@@ -54,7 +54,7 @@
 #define CP_BSS          (1)
 #define CP_ALLOCATIONS  (1)
 
-#define GDB_LOG_CP      (1)
+#define GDB_LOG_CP      (0)
 
 
 /* Debug options */
@@ -145,6 +145,44 @@ digitalio_digitalinout_obj_t rst_pin_nv;
 
 digitalio_digitalinout_obj_t pfail_pin_nv;
 
+/**
+ * Benchmark
+ */
+
+digitalio_digitalinout_obj_t cpbench_checkpoint_pin;
+digitalio_digitalinout_obj_t cpbench_restore_pin;
+#define CPBENCH_CHECKPOINT_PINDEF   (&pin_PA08) // D4
+#define CPBENCH_RESTORE_PINDEF      (&pin_PA15) // D5
+
+static inline void cpbench_init(void) {
+#if CHECKPOINT_BENCHMARK
+    cpbench_checkpoint_pin.base.type = &digitalio_digitalinout_type;
+    common_hal_digitalio_digitalinout_construct(&cpbench_checkpoint_pin, CPBENCH_CHECKPOINT_PINDEF);
+    common_hal_digitalio_digitalinout_switch_to_output(&cpbench_checkpoint_pin, true, DRIVE_MODE_PUSH_PULL);
+    common_hal_digitalio_digitalinout_never_reset(&cpbench_checkpoint_pin);
+    common_hal_digitalio_digitalinout_set_value(&cpbench_checkpoint_pin, false);
+
+    cpbench_restore_pin.base.type = &digitalio_digitalinout_type;
+    common_hal_digitalio_digitalinout_construct(&cpbench_restore_pin, CPBENCH_RESTORE_PINDEF);
+    common_hal_digitalio_digitalinout_switch_to_output(&cpbench_restore_pin, true, DRIVE_MODE_PUSH_PULL);
+    common_hal_digitalio_digitalinout_never_reset(&cpbench_restore_pin);
+    common_hal_digitalio_digitalinout_set_value(&cpbench_restore_pin, false);
+#endif
+}
+
+static inline void cpbench_checkpoint_pin_set_value(bool value) {
+#if CHECKPOINT_BENCHMARK
+    common_hal_digitalio_digitalinout_set_value(&cpbench_checkpoint_pin, value);
+#endif
+}
+
+static inline void cpbench_restore_pin_set_value(bool value) {
+#if CHECKPOINT_BENCHMARK
+    common_hal_digitalio_digitalinout_set_value(&cpbench_restore_pin, value);
+#endif
+}
+
+
 void nvm_wait_process(void) {
     // Wait untill the NVM signals it's ready
     while (common_hal_digitalio_digitalinout_get_value(&wr_pin_nv) == false) {
@@ -188,6 +226,9 @@ void nvm_comm_init(void) {
     common_hal_digitalio_digitalinout_construct(&pfail_pin_nv, &pin_PA20);
     common_hal_digitalio_digitalinout_switch_to_input(&pfail_pin_nv, PULL_NONE);
     common_hal_digitalio_digitalinout_never_reset(&pfail_pin_nv);
+
+    /* Benchmark pins */
+    cpbench_init();
 }
 
 void nvm_reset(void) {
@@ -427,6 +468,8 @@ __attribute__((noinline))
 static int pyrestore_process(void) {
     segment_size_t addr_start, addr_end, size;
 
+    cpbench_restore_pin_set_value(true);
+
     nvm_write_byte(CPCMND_REQUEST_RESTORE);
 
     bool restore_registers_pending = false;
@@ -561,6 +604,7 @@ void pyrestore(void) {
 
 uint32_t checkpoint_skipped = 0; // skip count
 uint32_t checkpoint_performed = 0; // checkpoint count
+uint32_t checkpoint_restore_performed = 0; // restore count
 
 static inline void checkpoint_schedule_callback(void);
 
@@ -597,6 +641,8 @@ int checkpoint(void)
         return 0;
     }
 
+    cpbench_checkpoint_pin_set_value(true);
+
     nvm_write_byte(CPCMND_REQUEST_CHECKPOINT);
 
     resp = nvm_read_byte();
@@ -618,6 +664,8 @@ int checkpoint(void)
     if (checkpoint_restored() == 0) {
         /* Normal operation */
         nvm_write_byte(CPCMND_CONTINUE);
+    } else {
+        ++checkpoint_restore_performed;
     }
 
     /* remove the pending status */
@@ -627,6 +675,14 @@ int checkpoint(void)
     checkpoint_schedule_callback();
 
     checkpoint_performed++;
+
+#if CHECKPOINT_BENCHMARK
+    if (checkpoint_restored() == 0) {
+        cpbench_checkpoint_pin_set_value(false);
+    } else {
+        cpbench_restore_pin_set_value(false);
+    }
+#endif
 
     return checkpoint_restored();
 }
@@ -696,13 +752,13 @@ static void checkpoint_schedule_update_time(const uint64_t period_ms) {
 
 static void checkpoint_schedule_update_trigger(void) {
     // If the threshold voltage is reached PFAIL is high
-    if (common_hal_digitalio_digitalinout_get_value(&pfail_pin_nv) == true) {
+    if (common_hal_digitalio_digitalinout_get_value(&pfail_pin_nv) == false) {
         checkpoint_schedule_update_time(checkpoint_cfg.cps_period_ms);
     }
 }
 
 static void checkpoint_schedule_update_hybrid(void) {
-    if (common_hal_digitalio_digitalinout_get_value(&pfail_pin_nv) == true) {
+    if (common_hal_digitalio_digitalinout_get_value(&pfail_pin_nv) == false) {
         checkpoint_schedule_update_time(checkpoint_cfg.cps_period_ms);
     } else {
         checkpoint_schedule_update_time(checkpoint_cfg.cps_hybrid_period_ms);
