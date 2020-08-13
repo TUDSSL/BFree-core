@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <stddef.h>
+#include "lib/checkpoint/checkpoint.h"
+
 #include "epd.h"
 #include "epd_temp.h"
 
@@ -32,6 +35,7 @@ void epd_init_temp(void) {
 }
 
 void epd_draw_base_temp(void) {
+
     epd_init_temp();
 
     epd_partial_display(64-8, 256-8, 256, 64, BFree);
@@ -42,13 +46,29 @@ void epd_draw_base_temp(void) {
 }
 
 void epd_draw_temp(uint8_t temp) {
-    static uint8_t last_unit = 10;
-    static uint8_t last_tens = 10;
-
-    epd_init_temp();
 
     uint8_t unit = temp % 10;
     uint8_t tens = (temp/10) % 10;
+
+    checkpoint_disable();
+
+    epd_init_temp();
+    epd_font_show(0, 2, unit);
+    epd_font_show(0, 1, tens);
+    epd_deep_sleep();
+
+    checkpoint_enable();
+}
+
+#if 0 // TODO: Can make this work if we move the last_* to the checkpoint
+void epd_draw_temp(uint8_t temp) {
+    static uint8_t last_unit = 10;
+    static uint8_t last_tens = 10;
+
+    uint8_t unit = temp % 10;
+    uint8_t tens = (temp/10) % 10;
+
+    epd_init_temp();
 
     if (unit != last_unit) {
         epd_font_show(0, 2, unit);
@@ -59,3 +79,4 @@ void epd_draw_temp(uint8_t temp) {
     }
     epd_deep_sleep();
 }
+#endif

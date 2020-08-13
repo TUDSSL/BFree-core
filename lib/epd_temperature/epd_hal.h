@@ -36,10 +36,17 @@ digitalio_digitalinout_obj_t epd_dc_pin;
 
 bool epd_performed_comm_init = false;
 
-static void epd_comm_init(void) {
+extern void _common_hal_busio_spi_construct(busio_spi_obj_t *self,
+        const mcu_pin_obj_t * clock, const mcu_pin_obj_t * mosi,
+        const mcu_pin_obj_t * miso);
 
-    if (epd_performed_comm_init == true)
+
+bool epd_performed_one_time_construct = false; // In checkpoint
+static void epd_one_time_construct(void) {
+
+    if (epd_performed_one_time_construct == true) {
         return;
+    }
 
     // Pin base
     epd_cs_pin.base.type = &digitalio_digitalinout_type;
@@ -51,7 +58,7 @@ static void epd_comm_init(void) {
     common_hal_digitalio_digitalinout_construct(&epd_cs_pin, EPD_CS_PIN);
     common_hal_digitalio_digitalinout_switch_to_output(&epd_cs_pin, true, DRIVE_MODE_PUSH_PULL);
     common_hal_digitalio_digitalinout_never_reset(&epd_cs_pin);
-    //common_hal_digitalio_digitalinout_set_value(&epd_cs_pin, true);
+    common_hal_digitalio_digitalinout_set_value(&epd_cs_pin, true);
 
     // RST pin
     common_hal_digitalio_digitalinout_construct(&epd_rst_pin, EPD_RST_PIN);
@@ -73,7 +80,26 @@ static void epd_comm_init(void) {
     epd_spi_bus.spi_desc = SPI_M_SERCOM2;
     common_hal_busio_spi_construct(&epd_spi_bus, EPD_SPI_SCK_PIN, EPD_SPI_MOSI_PIN, EPD_SPI_MISO_PIN);
     common_hal_busio_spi_configure(&epd_spi_bus, EPD_SPI_FREQ, 0, 0, 8);
-    common_hal_busio_spi_never_reset(&epd_spi_bus);
+    //common_hal_busio_spi_never_reset(&epd_spi_bus);
+
+    epd_performed_one_time_construct = true;
+}
+
+static void epd_comm_init(void) {
+
+    if (epd_performed_comm_init == true)
+        return;
+
+    if (!epd_performed_one_time_construct) {
+        epd_one_time_construct();
+    }
+
+    // SPI
+    //epd_spi_bus.base.type = &busio_spi_type;
+    //epd_spi_bus.spi_desc = SPI_M_SERCOM2;
+    //_common_hal_busio_spi_construct(&epd_spi_bus, EPD_SPI_SCK_PIN, EPD_SPI_MOSI_PIN, EPD_SPI_MISO_PIN);
+    common_hal_busio_spi_configure(&epd_spi_bus, EPD_SPI_FREQ, 0, 0, 8);
+    //common_hal_busio_spi_never_reset(&epd_spi_bus);
 
     epd_performed_comm_init = true;
 }
