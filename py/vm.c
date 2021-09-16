@@ -35,6 +35,9 @@
 #include "py/bc0.h"
 #include "py/bc.h"
 
+#include "lib/checkpoint/checkpoint.h"
+#define CHECKPOINT_START_BC_LOOP
+
 #if 0
 #define TRACE(ip) printf("sp=%d ", (int)(sp - &code_state->state[0] + 1)); mp_bytecode_print2(ip, 1, code_state->fun_bc->const_table);
 #else
@@ -195,6 +198,16 @@ outer_dispatch_loop:
 
             // loop to execute byte code
             for (;;) {
+#ifdef CHECKPOINT_START_BC_LOOP
+                //if (checkpoint() == 1) {
+                //    // Restore
+                //    //printf("*******RESTORED*******\r\n");
+                //} else {
+                //    //printf("*******CHECKPOINT*******\r\n");
+                //}
+                checkpoint();
+#endif
+
 dispatch_loop:
 #if MICROPY_OPT_COMPUTED_GOTO
                 DISPATCH();

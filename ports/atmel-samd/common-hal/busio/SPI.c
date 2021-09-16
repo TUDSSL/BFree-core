@@ -83,7 +83,7 @@ void reset_sercoms(void) {
 }
 
 
-void common_hal_busio_spi_construct(busio_spi_obj_t *self,
+void _common_hal_busio_spi_construct(busio_spi_obj_t *self,
         const mcu_pin_obj_t * clock, const mcu_pin_obj_t * mosi,
         const mcu_pin_obj_t * miso) {
     Sercom* sercom = NULL;
@@ -231,6 +231,42 @@ void common_hal_busio_spi_construct(busio_spi_obj_t *self,
 
     spi_m_sync_enable(&self->spi_desc);
 }
+
+// RESTORE CODE
+struct spi_restore {
+    bool active;
+    busio_spi_obj_t *self;
+    const mcu_pin_obj_t *clock;
+    const mcu_pin_obj_t *mosi;
+    const mcu_pin_obj_t *miso;
+};
+
+struct spi_restore SPI_Restore;
+
+void common_hal_busio_spi_restore(void) {
+    struct spi_restore *r;
+
+    r = &SPI_Restore;
+    if (r->active) {
+        _common_hal_busio_spi_construct(r->self, r->clock, r->mosi, r->miso);
+    }
+}
+
+void common_hal_busio_spi_construct(busio_spi_obj_t *self,
+        const mcu_pin_obj_t * clock, const mcu_pin_obj_t * mosi,
+        const mcu_pin_obj_t * miso) {
+    // Do not log if the SPI is the internal flash or the NVM memory controller (BFree shield)
+    if (mosi != &pin_PB22 && mosi != &pin_PA16) {
+        SPI_Restore.active = true;
+        SPI_Restore.self = self;
+        SPI_Restore.clock = clock;
+        SPI_Restore.mosi = mosi;
+        SPI_Restore.miso = miso;
+    }
+    _common_hal_busio_spi_construct(self, clock, mosi, miso);
+}
+
+// END RESTORE CODE
 
 void common_hal_busio_spi_never_reset(busio_spi_obj_t *self) {
     never_reset_sercom(self->spi_desc.dev.prvt);

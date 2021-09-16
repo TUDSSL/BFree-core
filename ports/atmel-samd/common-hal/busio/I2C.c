@@ -35,6 +35,7 @@
 #include "samd/sercom.h"
 #include "shared-bindings/microcontroller/__init__.h"
 #include "supervisor/shared/translate.h"
+#include <stdio.h>
 
 // Number of times to try to send packet if failed.
 #define ATTEMPTS 2
@@ -65,11 +66,12 @@ Sercom *samd_i2c_get_sercom(const mcu_pin_obj_t* scl, const mcu_pin_obj_t* sda,
     return NULL;
 }
 
-void common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
+void _common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
         const mcu_pin_obj_t* scl, const mcu_pin_obj_t* sda, uint32_t frequency, uint32_t timeout) {
     uint8_t sercom_index;
     uint32_t sda_pinmux, scl_pinmux;
     Sercom* sercom = samd_i2c_get_sercom(scl, sda, &sercom_index, &sda_pinmux, &scl_pinmux);
+    //printf("Sercom poiter: %p, index: %d\r\n", sercom, (int)sercom_index);
     if (sercom == NULL) {
         mp_raise_ValueError(translate("Invalid pins"));
     }
@@ -103,6 +105,7 @@ void common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
     samd_peripherals_sercom_clock_init(sercom, sercom_index);
 
     if (i2c_m_sync_init(&self->i2c_desc, sercom) != ERR_NONE) {
+        //printf("i2c m sync init error\r\n");
         reset_pin_number(sda->number);
         reset_pin_number(scl->number);
         mp_raise_OSError(MP_EIO);
@@ -126,7 +129,43 @@ void common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
         common_hal_busio_i2c_deinit(self);
         mp_raise_OSError(MP_EIO);
     }
+    //printf("Finished i2c construct\r\n");
 }
+
+
+// RESTORE TEST CODE
+struct i2c_restore {
+    bool active;
+    busio_i2c_obj_t *self;
+    const mcu_pin_obj_t *scl;
+    const mcu_pin_obj_t *sda;
+    uint32_t frequency;
+    uint32_t timeout;
+};
+
+struct i2c_restore I2C_Restore;
+
+void common_hal_busio_i2c_restore(void) {
+    struct i2c_restore *r;
+
+    //`printf("Restore I2C\r\n");
+    r = &I2C_Restore;
+    if (r->active) {
+        _common_hal_busio_i2c_construct(r->self, r->scl, r->sda, r->frequency, r->timeout);
+    }
+}
+
+void common_hal_busio_i2c_construct(busio_i2c_obj_t *self,
+        const mcu_pin_obj_t* scl, const mcu_pin_obj_t* sda, uint32_t frequency, uint32_t timeout) {
+    I2C_Restore.active = true;
+    I2C_Restore.self = self;
+    I2C_Restore.scl = scl;
+    I2C_Restore.sda = sda;
+    I2C_Restore.frequency = frequency;
+    I2C_Restore.timeout = timeout;
+    _common_hal_busio_i2c_construct(self, scl, sda, frequency, timeout);
+}
+// END RESTORE TEST CODE
 
 bool common_hal_busio_i2c_deinited(busio_i2c_obj_t *self) {
     return self->sda_pin == NO_PIN;

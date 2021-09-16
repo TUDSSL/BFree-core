@@ -56,6 +56,7 @@
 #define MICROPY_COMP_MODULE_CONST        (1)
 #define MICROPY_COMP_TRIPLE_TUPLE_ASSIGN (0)
 #define MICROPY_DEBUG_PRINTERS           (0)
+//#define MICROPY_DEBUG_PRINTERS           (1)
 #define MICROPY_EMIT_INLINE_THUMB        (0)
 #define MICROPY_EMIT_THUMB               (0)
 #define MICROPY_EMIT_X64                 (0)
@@ -543,6 +544,21 @@ extern const struct _mp_obj_module_t ustack_module;
 #define RE_MODULE
 #endif
 
+//#if CIRCUITPY_CHECKPOINT
+extern const struct _mp_obj_module_t checkpoint_module;
+#define CHECKPOINT_MODULE      { MP_OBJ_NEW_QSTR(MP_QSTR_checkpoint), (mp_obj_t)&checkpoint_module },
+//#else
+//#define CHECKPOINT_MODULE
+//#endif
+
+#define CIRCUITPY_EPD_TEMPERATURE (1)
+#if CIRCUITPY_EPD_TEMPERATURE
+extern const struct _mp_obj_module_t epd_temperature_module;
+#define EPD_TEMPERATURE_MODULE      { MP_OBJ_NEW_QSTR(MP_QSTR_epd_temperature), (mp_obj_t)&epd_temperature_module },
+#else
+#define EPD_TEMPERATURE_MODULE
+#endif
+
 // Define certain native modules with weak links so they can be replaced with Python
 // implementations. This list may grow over time.
 #define MICROPY_PORT_BUILTIN_MODULE_WEAK_LINKS \
@@ -603,6 +619,8 @@ extern const struct _mp_obj_module_t ustack_module;
     USB_HID_MODULE \
     USB_MIDI_MODULE \
     USTACK_MODULE \
+    CHECKPOINT_MODULE \
+    EPD_TEMPERATURE_MODULE \
 
 // If weak links are enabled, just include strong links in the main list of modules,
 // and also include the underscore alternate names.

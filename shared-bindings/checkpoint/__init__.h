@@ -3,7 +3,7 @@
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2018 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2018 Michael Schroeder
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,28 +24,14 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_SUPERVISOR_SAFE_MODE_H
-#define MICROPY_INCLUDED_SUPERVISOR_SAFE_MODE_H
+#ifndef MICROPY_INCLUDED_SHARED_BINDINGS_CHECKPOINT___INIT___H
+#define MICROPY_INCLUDED_SHARED_BINDINGS_CHECKPOINT___INIT___H
 
-typedef enum {
-  NO_SAFE_MODE = 0,
-  BROWNOUT,
-  HARD_CRASH,
-  USER_SAFE_MODE,
-  HEAP_OVERWRITTEN,
-  MANUAL_SAFE_MODE,
-  MICROPY_NLR_JUMP_FAIL,
-  MICROPY_FATAL_ERROR,
-  GC_ALLOC_OUTSIDE_VM,
-  PROGRAMMATIC_SAFE_MODE,
-  USER_RESET
-} safe_mode_t;
+//#include "py/mpconfig.h"
+//#include "py/obj.h"
 
-safe_mode_t wait_for_safe_mode_reset(void);
+//extern const super_runtime_obj_t common_hal_supervisor_runtime_obj;
 
-void safe_mode_on_next_reset(safe_mode_t reason);
-void reset_into_safe_mode(safe_mode_t reason);
 
-void print_safe_mode_message(safe_mode_t reason);
 
-#endif  // MICROPY_INCLUDED_SUPERVISOR_SAFE_MODE_H
+#endif // MICROPY_INCLUDED_SHARED_BINDINGS_CHECKPOINT___INIT___H

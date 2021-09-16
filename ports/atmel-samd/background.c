@@ -38,6 +38,8 @@
 #include "shared-module/displayio/__init__.h"
 #endif
 
+#include "lib/checkpoint/checkpoint.h"
+
 volatile uint64_t last_finished_tick = 0;
 
 bool stack_ok_so_far = true;
@@ -70,6 +72,10 @@ void run_background_tasks(void) {
     usb_background();
     running_background_tasks = false;
     assert_heap_ok();
+
+    #if CHECKPOINT_SCHEDULE_UPDATE
+    checkpoint_schedule_update();
+    #endif
 
     last_finished_tick = ticks_ms;
 }

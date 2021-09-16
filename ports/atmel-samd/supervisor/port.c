@@ -97,7 +97,7 @@ safe_mode_t port_init(void) {
     // which is too low for proper operation of external SPI flash chips (they are 2.7-3.6V).
     // Disable while changing level.
     SYSCTRL->BOD33.bit.ENABLE = 0;
-    SYSCTRL->BOD33.bit.LEVEL = 39;  // 2.77V with hysteresis off. Table 37.20 in datasheet.
+    SYSCTRL->BOD33.bit.LEVEL = 0;  // 2.77V with hysteresis off. Table 37.20 in datasheet.
     SYSCTRL->BOD33.bit.ENABLE = 1;
 
     #ifdef ENABLE_MICRO_TRACE_BUFFER
@@ -275,6 +275,7 @@ uint32_t* safe_word = (uint32_t*) (HMCRAMC0_ADDR + HMCRAMC0_SIZE - 0x2000);
 uint32_t* safe_word = (uint32_t*) (HSRAM_ADDR + HSRAM_SIZE - 0x2000);
 #endif
 
+__attribute__((noinline))
 void port_set_saved_word(uint32_t value) {
     *safe_word = value;
 }

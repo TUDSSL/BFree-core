@@ -46,7 +46,7 @@
 #include "hpl/pm/hpl_pm_base.h"
 #endif
 
-void common_hal_analogio_analogin_construct(analogio_analogin_obj_t* self,
+void _common_hal_analogio_analogin_construct(analogio_analogin_obj_t* self,
         const mcu_pin_obj_t *pin) {
     uint8_t adc_index;
     uint8_t adc_channel = 0xff;
@@ -71,6 +71,74 @@ void common_hal_analogio_analogin_construct(analogio_analogin_obj_t* self,
     self->channel = adc_channel;
     self->pin = pin;
 }
+
+// RESTORE CODE START
+struct analogin_restore {
+    bool active;
+    analogio_analogin_obj_t* self;
+    const mcu_pin_obj_t *pin;
+};
+
+/*
+            HW  SW
+A0  PA02    3   2 
+A1  PB08    7   40
+A2  PB09    8   41
+A3  PA04    9   4
+A4  PA05    10  5
+A5  PB02    47  34
+*/
+
+struct analogin_restore AnalogIn_Restore[6];
+
+void restore (void) {
+    struct analogin_restore *r;
+    for (uint32_t i = 0; i < 6; i++) {
+        r = &AnalogIn_Restore[i];
+        if (r->active) {
+            _common_hal_analogio_analogin_construct(r->self, r->pin);
+        }
+    }
+}
+void common_hal_analogio_analogin_restore(void) {
+    
+    // struct analogin_restore *r;
+    // // for (uint32_t i = 0; i < 6; i++) {
+    //     r = &AnalogIn_Restore;
+    //     if (r->active) {
+    //         _common_hal_analogio_analogin_construct(r->self, r->pin);
+    //     }
+    // // }
+    
+    // Above code does not work with the loop. Probably it's because of some compiler optimization.
+    // tricking the compiler by calling restore() with same code works
+    // NEED TO FIND OUT THE EXACT REASON
+    restore();
+}
+
+void common_hal_analogio_analogin_construct(
+        analogio_analogin_obj_t* self, const mcu_pin_obj_t* pin) {
+    // AnalogIn_Restore[pin->number].active = true;
+    int pn;
+    if(pin->number == 2)
+        pn = 0;
+    else if(pin->number == 40)
+        pn = 1;
+    else if(pin->number == 41)
+        pn = 2;
+    else if(pin->number == 4)
+        pn = 3;
+    else if(pin->number == 5)
+        pn = 4;
+    else
+        pn = 5;
+    AnalogIn_Restore[pn].active = true;
+    AnalogIn_Restore[pn].self = self;
+    AnalogIn_Restore[pn].pin = pin;
+
+    _common_hal_analogio_analogin_construct(self, pin);
+}
+// RESTORE CODE END
 
 bool common_hal_analogio_analogin_deinited(analogio_analogin_obj_t *self) {
     return self->pin == mp_const_none;

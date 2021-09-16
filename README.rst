@@ -1,4 +1,12 @@
-CircuitPython
+
+BFree Core: Intermittent CircuitPython
+-----
+
+
+This is the intermittent and untethered version of CircuitPython developed jointly by researchers at TU Delft and Northwestern University
+-----------
+
+
 =============
 
 .. image:: https://s3.amazonaws.com/adafruit-circuit-python/CircuitPython_Repo_header_logo.png
@@ -26,6 +34,7 @@ CircuitPython is based on `MicroPython <https://micropython.org>`_. See
 `below <#differences-from-micropython>`_ for differences. CircuitPython development is sponsored by
 `Adafruit <https://adafruit.com>`_ and is available on their educational development boards. Please
 support both MicroPython and Adafruit.
+
 
 Get CircuitPython
 ------------------

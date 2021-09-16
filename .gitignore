@@ -71,3 +71,13 @@ TAGS
 *.mo
 
 .vscode
+
+# GDB files
+####################
+.gdb_history
+.gdbinit
+
+# tag files
+####################
+tags
+cscope.out

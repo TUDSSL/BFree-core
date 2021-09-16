@@ -58,6 +58,9 @@
 #include "supervisor/shared/stack.h"
 #include "supervisor/serial.h"
 
+#include "hal_gpio.h"
+#include "atmel_start_pins.h"
+
 #if CIRCUITPY_NETWORK
 #include "shared-module/network/__init__.h"
 #endif
@@ -65,6 +68,9 @@
 #if CIRCUITPY_BOARD
 #include "shared-module/board/__init__.h"
 #endif
+
+#include <stdio.h>
+#include "lib/checkpoint/checkpoint.h"
 
 void do_str(const char *src, mp_parse_input_kind_t input_kind) {
     mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, src, strlen(src), 0);
@@ -218,7 +224,7 @@ bool run_code_py(safe_mode_t safe_mode) {
     if (safe_mode != NO_SAFE_MODE) {
         serial_write_compressed(translate("Running in safe mode! Not running saved code.\n"));
     } else {
-        new_status_color(MAIN_RUNNING);
+        // new_status_color(MAIN_RUNNING);
 
         static const char *supported_filenames[] = STRING_LIST("code.txt", "code.py", "main.py", "main.txt");
         static const char *double_extension_filenames[] = STRING_LIST("code.txt.py", "code.py.txt", "code.txt.txt","code.py.py",
@@ -295,7 +301,7 @@ void __attribute__ ((noinline)) run_boot_py(safe_mode_t safe_mode) {
     if (filesystem_present() && safe_mode == NO_SAFE_MODE && MP_STATE_VM(vfs_mount_table) != NULL) {
         static const char *boot_py_filenames[] = STRING_LIST("settings.txt", "settings.py", "boot.py", "boot.txt");
 
-        new_status_color(BOOT_RUNNING);
+        // new_status_color(BOOT_RUNNING);
 
         #ifdef CIRCUITPY_BOOT_OUTPUT_FILE
         FIL file_pointer;
@@ -374,7 +380,7 @@ int run_repl(void) {
     supervisor_allocation* heap = allocate_remaining_memory();
     start_mp(heap);
     autoreload_suspend();
-    new_status_color(REPL_RUNNING);
+    // new_status_color(REPL_RUNNING);
     if (pyexec_mode_kind == PYEXEC_MODE_RAW_REPL) {
         exit_code = pyexec_raw_repl();
     } else {
@@ -385,6 +391,28 @@ int run_repl(void) {
     return exit_code;
 }
 
+#define MICROPY_DISABLE_NEOPIXEL (1)
+
+// We disabled it, it can't take low volage rises
+#if !defined(MICROPY_HW_NEOPIXEL) && MICROPY_DISABLE_NEOPIXEL
+static uint8_t status_neopixel_color[3];
+static digitalio_digitalinout_obj_t status_neopixel;
+#include "shared-bindings/neopixel_write/__init__.h"
+
+void rgb_led_status_clear(void) {
+    common_hal_digitalio_digitalinout_construct(&status_neopixel, &pin_PA30);
+    common_hal_digitalio_digitalinout_switch_to_output(&status_neopixel, false, DRIVE_MODE_PUSH_PULL);
+    status_neopixel_color[0] = 0;
+    status_neopixel_color[1] = 0;
+    status_neopixel_color[2] = 0;
+    common_hal_neopixel_write(&status_neopixel, status_neopixel_color, 3);
+    common_hal_neopixel_write(&status_neopixel, status_neopixel_color, 3);
+}
+#else
+#define rgb_led_status_clear()
+#endif
+
+#define CLEAR_NVM_USER_RESET (0) // TODO: Move to config
 int __attribute__((used)) main(void) {
     memory_init();
 
@@ -394,13 +422,27 @@ int __attribute__((used)) main(void) {
     // Turn on LEDs
     init_status_leds();
     rgb_led_status_init();
+    rgb_led_status_clear();
 
     // Wait briefly to give a reset window where we'll enter safe mode after the reset.
     if (safe_mode == NO_SAFE_MODE) {
         safe_mode = wait_for_safe_mode_reset();
     }
 
-    stack_init();
+    // Clear nvm when the connection is made
+    //bool clear_nvm = true;
+    if (safe_mode == USER_RESET) {
+        //clear_nvm = false;
+        safe_mode = NO_SAFE_MODE;
+    } else if (safe_mode == NO_SAFE_MODE) {
+        //clear_nvm = false;
+    } else if (safe_mode == HARD_CRASH) {
+        safe_mode = NO_SAFE_MODE;
+        //clear_nvm = true;
+    } else if (safe_mode == BROWNOUT) {
+        //clear_nvm = false;
+        safe_mode = NO_SAFE_MODE;
+    }
 
     // Create a new filesystem only if we're not in a safe mode.
     // A power brownout here could make it appear as if there's
@@ -419,10 +461,29 @@ int __attribute__((used)) main(void) {
     filesystem_set_internal_concurrent_write_protection(true);
     filesystem_set_internal_writable_by_usb(true);
 
-    run_boot_py(safe_mode);
+    //run_boot_py(safe_mode);
 
     // Start serial and HID after giving boot.py a chance to tweak behavior.
     serial_init();
+
+    //gpio_set_pin_direction(PA10, GPIO_DIRECTION_OUT);
+    //gpio_set_pin_level(PA10, true);
+
+    // Initialize the checkpoint controller
+    checkpoint_init();
+
+#if CLEAR_NVM_USER_RESET
+    if (clear_nvm) {
+        printf("deleting checkpoint\r\n");
+        int r = checkpoint_delete();
+        if (r == 0) {
+            printf("deleting checkpoint FAILED!\r\n");
+        }
+    }
+#endif
+    pyrestore();
+
+    stack_init();
 
     // Boot script is finished, so now go into REPL/main mode.
     int exit_code = PYEXEC_FORCED_EXIT;
@@ -435,6 +496,13 @@ int __attribute__((used)) main(void) {
         if (exit_code == PYEXEC_FORCED_EXIT) {
             if (!first_run) {
                 serial_write_compressed(translate("soft reboot\n"));
+                printf("deleting checkpoint\r\n");
+                nvm_reset();
+                int r = checkpoint_delete();
+                if (r == 0) {
+                    printf("deleting checkpoint FAILED!\r\n");
+                }
+                //reset_cpu();
             }
             first_run = false;
             skip_repl = run_code_py(safe_mode);
@@ -482,3 +550,4 @@ void MP_WEAK __assert_func(const char *file, int line, const char *func, const c
     __fatal_error("Assertion failed");
 }
 #endif
+

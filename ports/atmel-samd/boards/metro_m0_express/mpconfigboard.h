@@ -6,7 +6,7 @@
 // Comment this out if you have trouble connecting over SWD. It's one of the SWD pins.
 #define MICROPY_HW_LED_RX   &pin_PA31
 
-#define MICROPY_HW_NEOPIXEL (&pin_PA30)
+//#define MICROPY_HW_NEOPIXEL (&pin_PA30)
 
 // Clock rates are off: Salae reads 12MHz which is the limit even though we set it to the safer 8MHz.
 #define SPI_FLASH_BAUDRATE  (8000000)

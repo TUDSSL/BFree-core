@@ -97,9 +97,10 @@ CFLAGS += -Os -DNDEBUG
 CFLAGS += -DCFG_TUSB_MCU=OPT_MCU_SAMD51 -DCFG_TUD_MIDI_RX_BUFSIZE=128 -DCFG_TUD_CDC_RX_BUFSIZE=256 -DCFG_TUD_MIDI_TX_BUFSIZE=128 -DCFG_TUD_CDC_TX_BUFSIZE=256 -DCFG_TUD_MSC_BUFSIZE=1024
 endif
 
+###DEBUG=1
 #Debugging/Optimization
 ifeq ($(DEBUG), 1)
-  CFLAGS += -ggdb
+  CFLAGS += -ggdb -g
   # You may want to disable -flto if it interferes with debugging.
   CFLAGS += -flto -flto-partition=none
   # You may want to enable these flags to make setting breakpoints easier.
@@ -251,6 +252,7 @@ SRC_C = \
 	supervisor/shared/memory.c \
 	tick.c \
 	timer_handler.c \
+	lib/checkpoint/checkpoint.c \
 
 
 ifeq ($(CIRCUITPY_NETWORK),1)
@@ -279,6 +281,15 @@ SRC_SHARED_MODULE += wiznet/__init__.c wiznet/wiznet5k.c
 endif
 endif
 
+SRC_SHARED_MODULE += checkpoint/__init__.c
+
+CIRCUITPY_EPD_TEMPERATURE=1
+ifeq ($(CIRCUITPY_EPD_TEMPERATURE),1)
+SRC_SHARED_MODULE += epd_temperature/__init__.c
+SRC_C += lib/epd_temperature/epd.c \
+		 lib/epd_temperature/epd_temp.c
+endif
+
 # The smallest SAMD51 packages don't have I2S. Everything else does.
 ifeq ($(CIRCUITPY_AUDIOBUSIO),1)
 SRC_C += peripherals/samd/i2s.c peripherals/samd/$(CHIP_FAMILY)/i2s.c
@@ -291,7 +302,7 @@ SRC_COMMON_HAL_EXPANDED = $(addprefix shared-bindings/, $(SRC_COMMON_HAL)) \
 SRC_SHARED_MODULE_EXPANDED = $(addprefix shared-bindings/, $(SRC_SHARED_MODULE)) \
                              $(addprefix shared-module/, $(SRC_SHARED_MODULE))
 
-SRC_S = supervisor/$(CHIP_FAMILY)_cpu.s
+SRC_S = supervisor/$(CHIP_FAMILY)_cpu.s lib/checkpoint/checkpoint_svc.s
 
 OBJ = $(PY_O) $(SUPERVISOR_O) $(addprefix $(BUILD)/, $(SRC_C:.c=.o))
 OBJ += $(addprefix $(BUILD)/, $(SRC_ASF:.c=.o))

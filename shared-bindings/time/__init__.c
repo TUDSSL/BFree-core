@@ -36,6 +36,8 @@
 #include "shared-bindings/time/__init__.h"
 #include "supervisor/shared/translate.h"
 
+#include "lib/checkpoint/checkpoint.h"
+
 //| :mod:`time` --- time and timing related functions
 //| ========================================================
 //|
@@ -62,12 +64,32 @@ STATIC mp_obj_t time_monotonic(void) {
 }
 MP_DEFINE_CONST_FUN_OBJ_0(time_monotonic_obj, time_monotonic);
 
+
+#define NV_TIME_DELAY_CHUNK_SIZE_MS (CHECKPOINT_PERIOD_MS / 4)
+extern volatile uint64_t ticks_ms;
+extern struct checkpoint_config checkpoint_cfg;
+/*
+ * Checkpoint but track the time spend
+ */
+
+__attribute__((noinline))
+uint32_t nv_time_checkpoint(void) {
+    volatile uint64_t time_start_cp, time_diff_cp;
+
+    time_start_cp = ticks_ms;
+    checkpoint();
+    time_diff_cp = ticks_ms - time_start_cp;
+
+    return time_diff_cp;
+}
 //| .. function:: sleep(seconds)
 //|
 //|   Sleep for a given number of seconds.
 //|
 //|   :param float seconds: the time to sleep in fractional seconds
 //|
+//#include "supervisor/serial.h"
+//#include <stdio.h>
 STATIC mp_obj_t time_sleep(mp_obj_t seconds_o) {
     #if MICROPY_PY_BUILTINS_FLOAT
     float seconds = mp_obj_get_float(seconds_o);
@@ -77,7 +99,56 @@ STATIC mp_obj_t time_sleep(mp_obj_t seconds_o) {
     if (seconds < 0) {
         mp_raise_ValueError(translate("sleep length must be non-negative"));
     }
-    common_hal_time_delay_ms(1000 * seconds);
+
+    uint32_t sleep_time_ms = 1000 * seconds;
+    uint32_t check_period = checkpoint_cfg.cps_period_ms / 2;
+    uint32_t number_of_chunks = sleep_time_ms / check_period;
+    uint32_t remaining_ms = sleep_time_ms % check_period;
+    uint32_t cp_time;
+
+    //printf("Sleep time ms: %ld\n", sleep_time_ms);
+    //printf("check period: %ld\n", check_period);
+    //printf("number of chunks: %ld\n", number_of_chunks);
+    //printf("remaining_ms: %ld\n", remaining_ms);
+
+    while (number_of_chunks) {
+        cp_time = nv_time_checkpoint();
+
+        uint32_t skip_chunks = cp_time / check_period;
+        uint32_t remaining_ms_chunk = check_period - (cp_time % check_period);
+
+        //printf("Number of chunks left: %ld\n", number_of_chunks);
+        //printf("cp time: %ld\n", cp_time);
+        //printf("Skip chunks: %ld\n", skip_chunks);
+        //printf("Remaining ms: %ld\n", remaining_ms_chunk);
+
+        if (skip_chunks >= number_of_chunks) {
+            // The checkpoint made the delay take longer than intended
+            return mp_const_none;
+        }
+
+        number_of_chunks -= skip_chunks;
+
+        if (remaining_ms_chunk == 0) {
+            // The checkpoint time was an exact chunk, so skip the rest
+        } else {
+            // The remaining time in this chunk
+            common_hal_time_delay_ms(remaining_ms_chunk);
+        }
+
+        --number_of_chunks;
+    }
+
+    /* The remaining delay */
+#if 0
+    cp_time = nv_time_checkpoint();
+    if (remaining_ms > cp_time) {
+        common_hal_time_delay_ms(remaining_ms - cp_time);
+    }
+#endif
+    common_hal_time_delay_ms(remaining_ms);
+
+    //common_hal_time_delay_ms(1000 * seconds);
     return mp_const_none;
 }
 MP_DEFINE_CONST_FUN_OBJ_1(time_sleep_obj, time_sleep);

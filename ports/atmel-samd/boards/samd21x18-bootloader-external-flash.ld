@@ -7,13 +7,15 @@ MEMORY
 {
     /* Leave 8KiB for the bootloader and 256b for user config. */
     FLASH (rx) : ORIGIN = 0x00000000 + 8K, LENGTH = 256K - 8K - 256
-    RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 32K /* 32 KiB RAM */
+    RAM (xrw)  : ORIGIN = 0x20000000, LENGTH = 32K - 1024 /* 32 KiB RAM */
 }
 
 /* top end of the stack */
 /* stack must be double-word (8 byte) aligned */
 _estack = ORIGIN(RAM) + LENGTH(RAM) - 8;
 _bootloader_dbl_tap = ORIGIN(RAM) + LENGTH(RAM) - 4;
+
+_esafestack = _estack + 1024;
 
 /* define output sections */
 SECTIONS
@@ -48,6 +50,11 @@ SECTIONS
     {
         . = ALIGN(4);
         _srelocate = .;        /* create a global symbol at data start; used by startup code in order to initialise the .data section in RAM */
+        /* *(*.usb_serial_number) */
+        INCLUDE "include-checkpoint-data.ld" ;
+        . = ALIGN(4);
+        _erelocate_cp = .;
+
         *(.ramfunc)
         *(.ramfunc*)
         *(.data)           /* .data sections */
@@ -63,6 +70,10 @@ SECTIONS
         . = ALIGN(4);
         _sbss = .;
         _szero = .;         /* define a global symbol at bss start; used by startup code */
+        INCLUDE "include-checkpoint-bss.ld" ;
+        . = ALIGN(4);
+        _ebss_cp = .;
+
         *(.bss)
         *(.bss*)
         *(COMMON)

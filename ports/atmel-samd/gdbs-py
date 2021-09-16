@@ -1,0 +1,6 @@
+#!/bin/bash
+export PYTHONPATH="../../scripts/"
+
+GDB_BIN="gdb-multiarch"
+
+$GDB_BIN -ex "target extended-remote 127.0.0.1:2331" -ex "load" -ex "mon reset" -ex "source ../../scripts/gdb-memory-diff-dump.py" -ex "source ../../scripts/micro-trace-buffer.py" build-metro_m0_express/firmware.elf
